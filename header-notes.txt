@@ -1,0 +1,68 @@
+An HTTP response has two parts:
+
+Headers — a set of metadata key/value pairs (Content-Type, and your custom X-Sources). Small, text-only.
+Body — the actual content (here, the streamed answer text).
+
+
+header is a clean side-channel
+
+
+This is why the header approach works so neatly with streaming. When a response comes back, it doesn't all arrive at once. It arrives in this order over the network:
+
+Status line (200 OK)
+All the headers — including your X-Sources
+Then the body — which, for a stream, dribbles in chunk by chunk over time
+
+
+That await resolves as soon as the headers have arrived — not when the body is complete. So the moment fetch returns, you already have access to all the headers, even though the body (the answer text) hasn't finished streaming and might barely have started. That's why your code can do:
+
+
+const raw = res.headers.get('X-Sources')   // headers are here immediately
+// ... then later ...
+const reader = res.body.getReader()         // body streams in over time
+
+You read the header first (it's already fully there), attach the sources to the message, and then start consuming the streaming body. The sequence in your code mirrors the sequence on the wire: headers first (instant), body second (gradual).
+
+
+
+Your logs prove this ordering beautifully:
+
+raw: %5B%7B...          ← header read FIRST, fully present
+sources: (2) [{…}, {…}] ← parsed
+last {content: '', sources: Array(2)}        ← sources attached, body still empty ('')
+last {content: 'According', sources: Array(2)}  ← NOW the body starts streaming in
+last {content: 'According to the NDA...', sources: Array(2)}  ← body growing
+
+
+fetch's await resolves when headers arrive (not when the body finishes), so you can read X-Sources immediately, attach the sources, and then consume the slowly-streaming body — exactly the order your logs show, with sources: Array(2) present while content is still ''.
+
+
+cookies:
+For cross-origin requests, the browser withholds cookies by default; credentials: 'include' is how you opt back in — which is why your example.com example needed it but your same-origin app doesn't.
+
+
+=========
+
+
+[x] — exactly one segment after. Matches /thing/a (one segment: a). Does not match /thing (zero — nothing there) or /thing/a/b (two — too many). Precisely one.
+
+[...x] — one or more segments after. Matches /thing/a (one), /thing/a/b (two), /thing/a/b/c (three) — any number, as long as there's at least one. Does not match bare /thing (zero segments — nothing to catch).
+
+[[...x]] — zero or more segments after. Matches everything the previous one does plus bare /thing (zero segments). The double brackets add the "zero" case — the bare base path.
+
+
+
+
+To catch all of these with one page, you need the pattern that matches zero-or-more segments — [[...sign-in]]. If you used [...sign-in] (one-or-more), it would catch /sign-in/factor-one but miss the bare /sign-in, giving a 404 when someone lands on plain /sign-in. The double brackets include that bare case, which is why Clerk requires them.
+
+Quick reference:
+
+Pattern	Segments after the folder	Matches bare base?
+[x]	exactly one	no
+[...x]	one or more	no
+[[...x]]	zero or more	yes
+
+So: a segment is a /-separated piece of the path; bare /sign-in means /sign-in alone with nothing after it; [x] catches exactly one piece, [...x] catches one-or-more pieces, and [[...x]] catches zero-or-more (which is why it uniquely handles the bare base path too). Clerk needs [[...sign-in]] so your one page covers both plain /sign-in and all its flow sub-paths.
+
+
+NIST's pasword best practices 
