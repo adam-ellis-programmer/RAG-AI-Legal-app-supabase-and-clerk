@@ -3,7 +3,7 @@ import { auth } from '@clerk/nextjs/server'
 import { extractText, getDocumentProxy } from 'unpdf'
 import { VoyageAIClient } from 'voyageai'
 import { db } from '@/lib/db'
-import { documents } from '@/lib/schema'
+import { documents, documentFiles } from '@/lib/schema'
 
 // unpdf needs Node APIs — it will not run on the Edge runtime.
 export const runtime = 'nodejs'
@@ -204,6 +204,9 @@ export async function POST(req: Request) {
         embedding: embeddings[i],
       })),
     )
+
+    // Store the full text once, for the document viewer (chunks stay for the AI).
+    await db.insert(documentFiles).values({ orgId, source, fullText: rawText })
 
     return Response.json({
       source,
