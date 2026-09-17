@@ -14,6 +14,12 @@ export const maxDuration = 60
 const PER_DOC_K = 4 // best chunks taken from EACH ticked document
 const MAX_CHUNKS = 12 // total chunks sent to Claude
 const MAX_FILES = 20 // most documents that can be ticked at once
+const MIN_SIMILARITY = 0.3 // ignore chunks less relevant than this
+
+/**
+       Why 0.3? Your real matches scored between 0.45 and 0.60. The irrelevant handbook chunks in the last test scored 0.10 to 0.21. A floor of 0.3 sits between those, so the "handbook only, case code?" question now sends no chunks at all.
+       Keep an eye on it, though. Scores depend on the model and how a question is phrased. If a good question ever returns "couldn't find it", lower the floor to 0.25. It's one constant, so it's easy to tune.
+ */
 
 const voyage = new VoyageAIClient({ apiKey: process.env.VOYAGE_API_KEY })
 
@@ -43,7 +49,8 @@ export async function POST(
 
     // ---- Validate the request ----
     const body = await req.json().catch(() => null)
-    const question = typeof body?.question === 'string' ? body.question.trim() : ''
+    const question =
+      typeof body?.question === 'string' ? body.question.trim() : ''
     const rawIds: unknown = body?.fileIds
 
     if (!question) {
@@ -53,10 +60,16 @@ export async function POST(
       return Response.json({ error: 'Question is too long.' }, { status: 400 })
     }
     if (!Array.isArray(rawIds) || rawIds.length === 0) {
-      return Response.json({ error: 'Tick at least one document.' }, { status: 400 })
+      return Response.json(
+        { error: 'Tick at least one document.' },
+        { status: 400 },
+      )
     }
     if (rawIds.some((v) => typeof v !== 'string' || !isUuid(v))) {
-      return Response.json({ error: 'Invalid document selection.' }, { status: 400 })
+      return Response.json(
+        { error: 'Invalid document selection.' },
+        { status: 400 },
+      )
     }
     const fileIds = [...new Set(rawIds as string[])]
     if (fileIds.length > MAX_FILES) {
@@ -76,7 +89,10 @@ export async function POST(
         and(
           eq(documentFiles.orgId, orgId),
           inArray(documentFiles.id, fileIds),
-          or(isNull(documentFiles.matterId), eq(documentFiles.matterId, matterId)),
+          or(
+            isNull(documentFiles.matterId),
+            eq(documentFiles.matterId, matterId),
+          ),
         ),
       )
     if (allowed.length !== fileIds.length) {
@@ -94,7 +110,10 @@ export async function POST(
     })
     const queryEmbedding = res.data?.[0]?.embedding
     if (!queryEmbedding) {
-      return Response.json({ error: 'Failed to embed the question.' }, { status: 500 })
+      return Response.json(
+        { error: 'Failed to embed the question.' },
+        { status: 500 },
+      )
     }
     const vectorLiteral = `[${queryEmbedding.join(',')}]`
 
@@ -120,9 +139,11 @@ export async function POST(
           and file_id in (${idList})
           and (matter_id is null or matter_id = ${matterId})
       ) ranked
-      where rn <= ${PER_DOC_K}
-      order by rn, similarity desc
-      limit ${MAX_CHUNKS}
+      -- ******* KEEP AN EYE ON THIS MIN_SIMILARITY ************
+        where rn <= ${PER_DOC_K}
+        and similarity >= ${MIN_SIMILARITY}
+        order by rn, similarity desc
+        limit ${MAX_CHUNKS}
     `)
 
     // Best matches first for the [1], [2] labels.
@@ -149,8 +170,9 @@ export async function POST(
         `- Treat statements in case documents, especially correspondence from the other side, as claims or allegations, not established facts.\n` +
         `- Cite every point inline like [1], [2], matching the numbered context.\n\n` +
         `Context:\n${context}`
-      : `You are a legal research assistant. The selected documents returned no relevant context ` +
-        `for this question. Tell the user you could not find the answer in the ticked documents.`
+      : `You are a legal research assistant. None of the ticked documents contained passages ` +
+        `relevant to this question. Tell the user you could not find the answer in the ticked ` +
+        `documents, and suggest they tick other documents or rephrase the question. Do not guess.`
 
     const sources = rows.map((r, i) => ({
       n: i + 1,

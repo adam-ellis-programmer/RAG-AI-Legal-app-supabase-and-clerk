@@ -272,7 +272,7 @@ export async function POST(req: Request) {
         The order is reversed. The file row is inserted first, because the chunks need its ID for fileId.
         Failed chunk inserts are cleaned up. If the chunk insert fails, the file row is deleted, so the documents list never shows a file the AI can't search.
         Your main uploader on /app doesn't send a matterId, so it keeps creating firm-wide law books exactly as before.
-        
+          
      * ************ ************ *********************************/
   } catch (err) {
     console.error('ingest error:', err)

@@ -3,7 +3,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-
+import ReactMarkdown from 'react-markdown'
 type Doc = { id: string; source: string }
 type Source = {
   n: number
@@ -92,6 +92,11 @@ export function CaseQuery({
 
   const tooMany = selected.size > MAX_FILES
   const canAsk = !pending && question.trim() && selected.size > 0 && !tooMany
+
+  // Turn [1], [2] in the answer into links that jump to the matching source below.
+  function linkCitations(text: string) {
+    return text.replace(/\[(\d+)\]/g, '[\\[$1\\]](#source-$1)')
+  }
 
   function Group({
     title,
@@ -184,9 +189,67 @@ export function CaseQuery({
 
       {error && <p className='text-sm text-red-600'>{error}</p>}
 
-      {answer && (
+      {/* {answer && (
         <div className='whitespace-pre-wrap rounded-lg bg-slate-50 p-4 text-sm leading-relaxed text-slate-800'>
           {answer}
+        </div>
+      )} */}
+
+      {answer && (
+        <div className='rounded-lg bg-slate-50 p-4 text-sm leading-relaxed text-slate-800'>
+          <ReactMarkdown
+            components={{
+              p: ({ children }) => <p className='mb-3 last:mb-0'>{children}</p>,
+              strong: ({ children }) => (
+                <strong className='font-semibold text-slate-900'>
+                  {children}
+                </strong>
+              ),
+              em: ({ children }) => <em className='italic'>{children}</em>,
+              h1: ({ children }) => (
+                <h3 className='mb-2 mt-4 font-semibold text-slate-900 first:mt-0'>
+                  {children}
+                </h3>
+              ),
+              h2: ({ children }) => (
+                <h3 className='mb-2 mt-4 font-semibold text-slate-900 first:mt-0'>
+                  {children}
+                </h3>
+              ),
+              h3: ({ children }) => (
+                <h3 className='mb-2 mt-4 font-semibold text-slate-900 first:mt-0'>
+                  {children}
+                </h3>
+              ),
+              ul: ({ children }) => (
+                <ul className='mb-3 list-disc space-y-1 pl-5'>{children}</ul>
+              ),
+              ol: ({ children }) => (
+                <ol className='mb-3 list-decimal space-y-1 pl-5'>{children}</ol>
+              ),
+              li: ({ children }) => <li>{children}</li>,
+              a: ({ href, children }) =>
+                href?.startsWith('#source-') ? (
+                  <a
+                    href={href}
+                    className='mx-0.5 rounded bg-slate-200 px-1 text-xs font-medium text-slate-700 no-underline hover:bg-slate-300'
+                  >
+                    {children}
+                  </a>
+                ) : (
+                  <a
+                    href={href}
+                    className='underline'
+                    target='_blank'
+                    rel='noreferrer'
+                  >
+                    {children}
+                  </a>
+                ),
+            }}
+          >
+            {linkCitations(answer)}
+          </ReactMarkdown>
         </div>
       )}
 
