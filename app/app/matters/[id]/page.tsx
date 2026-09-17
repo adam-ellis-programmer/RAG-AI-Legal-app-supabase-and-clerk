@@ -1,12 +1,17 @@
 // app/app/matters/[id]/page.tsx
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
-import { clients, matterMembers } from '@/lib/schema'
+import { and, desc, eq, isNull } from 'drizzle-orm'
+import { CaseQuery } from '@/components/CaseQuery'
+
+import { clients, matterMembers, documentFiles } from '@/lib/schema'
+import { CaseUpload } from '@/components/CaseUpload'
+// Ethical and firm wall
 import { getMatterAccess, getOrgMembers } from '@/lib/matter-access'
 import { addMatterMember, removeMatterMember } from './actions'
 import { SubmitButton } from '@/components/SubmitButton'
+
 export default async function MatterPage({
   params,
 }: {
@@ -20,21 +25,40 @@ export default async function MatterPage({
   const { userId, orgId, matter, membership } = access
   const isAdmin = membership.role === 'admin'
 
-  const [[client], team, orgMembers] = await Promise.all([
+  // prettier-ignore
+  const [[client], team, orgMembers, caseDocs, lawBooks] = await Promise.all([
     db.select().from(clients).where(eq(clients.id, matter.clientId)).limit(1),
     db.select().from(matterMembers).where(eq(matterMembers.matterId, id)),
     getOrgMembers(orgId),
+    db
+      .select({
+        id: documentFiles.id,
+        source: documentFiles.source,
+        uploadedBy: documentFiles.uploadedBy,
+        createdAt: documentFiles.createdAt,
+      })
+      .from(documentFiles)
+      .where(and(eq(documentFiles.matterId, id), eq(documentFiles.orgId, orgId)))
+      .orderBy(desc(documentFiles.createdAt)),
+    db
+      .select({ id: documentFiles.id, source: documentFiles.source })
+      .from(documentFiles)
+      .where(and(eq(documentFiles.orgId, orgId), isNull(documentFiles.matterId)))
+      .orderBy(documentFiles.source),
   ])
 
   const byUserId = new Map(orgMembers.map((m) => [m.userId, m]))
   const adminCount = team.filter((m) => m.role === 'admin').length
+
   const sortedTeam = [...team].sort((a, b) =>
     a.role === b.role ? 0 : a.role === 'admin' ? -1 : 1,
   )
   // Firm members not already on this case — the "add" dropdown options.
+  // *** two loops *** ??? one nested -> for loop equivalent
   const candidates = orgMembers.filter(
     (m) => !team.some((t) => t.userId === m.userId),
   )
+  console.log(orgMembers)
 
   return (
     <main className='mx-auto max-w-3xl px-6 py-10'>
@@ -153,12 +177,57 @@ export default async function MatterPage({
           ))}
       </section>
 
-      {/* Documents — next step */}
-      <section className='rounded-xl border border-dashed border-slate-300 p-8 text-center'>
-        <p className='text-slate-500'>Case documents will appear here.</p>
-        <p className='mt-1 text-xs text-slate-400'>
-          Uploading matter documents (scoped to this case) is the next step.
-        </p>
+      {/* Case documents — visible to the case team only */}
+      <section>
+        <div className='mb-3 flex items-center justify-between'>
+          <h2 className='text-sm font-semibold text-slate-700'>
+            Case documents{' '}
+            <span className='font-normal text-slate-400'>
+              ({caseDocs.length})
+            </span>
+          </h2>
+          <CaseUpload matterId={matter.id} />
+        </div>
+
+        {caseDocs.length === 0 ? (
+          <div className='rounded-xl border border-dashed border-slate-300 p-8 text-center'>
+            <p className='text-slate-500'>No documents on this case yet.</p>
+            <p className='mt-1 text-xs text-slate-400'>
+              Upload the client&apos;s files (deeds, contracts, correspondence)
+              as PDFs.
+            </p>
+          </div>
+        ) : (
+          <ul className='space-y-2'>
+            {caseDocs.map((doc) => (
+              <li key={doc.id}>
+                <Link
+                  href={`/app/documents/${doc.id}`}
+                  className='flex items-center justify-between rounded-xl border border-slate-200 p-4 transition hover:border-slate-300 hover:bg-slate-50'
+                >
+                  <span className='font-medium text-slate-900'>
+                    {doc.source}
+                  </span>
+                  <span className='text-xs text-slate-400'>
+                    {byUserId.get(doc.uploadedBy ?? '')?.name ?? 'Unknown'} ·{' '}
+                    {new Date(doc.createdAt).toLocaleDateString()}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* Ask about this case — tick case files + law books */}
+      {/* prettier-ignore */}
+      <section className='mt-8'>
+        <h2 className='mb-3 text-sm font-semibold text-slate-700'>Ask about this case</h2>
+        <CaseQuery
+          matterId={matter.id}
+          caseDocs={caseDocs.map((d) => ({ id: d.id, source: d.source }))}
+          lawBooks={lawBooks}
+        />
       </section>
     </main>
   )

@@ -5,6 +5,10 @@ import { VoyageAIClient } from 'voyageai'
 import { db } from '@/lib/db'
 import { documents, documentFiles } from '@/lib/schema'
 
+import { eq } from 'drizzle-orm'
+import { getMatterAccess } from '@/lib/matter-access'
+import { logAction } from '@/lib/audit'
+
 // unpdf needs Node APIs — it will not run on the Edge runtime.
 export const runtime = 'nodejs'
 // Give the function room to process larger PDFs once deployed (Vercel).
@@ -117,6 +121,25 @@ export async function POST(req: Request) {
     const pastedText = form.get('text')
     const sourceField = form.get('source')
 
+    // ******* added in ******
+    // A case ID means the file is for a case. null means it's a firm-wide law book.
+    // It only runs for case uploads, and it asks two questions:
+    // A law book upload skips the guard, because there's no case to check. Any member of the firm can still add law books, as before.
+
+    // Optional: which case this upload belongs to. No matterId = firm-wide law book.
+    const matterIdField = form.get('matterId')
+    const matterId =
+      typeof matterIdField === 'string' && matterIdField ? matterIdField : null
+
+    // Layers 1 + 2: you can only upload into a case you're on the team for.
+    // Checked BEFORE parsing/embedding, so a rejected upload costs nothing.
+    if (matterId) {
+      const access = await getMatterAccess(matterId)
+      if (!access) {
+        return Response.json({ error: 'Case not found.' }, { status: 404 })
+      }
+    }
+
     // Resolve the raw text from either a PDF upload or a pasted-text field.
     let rawText = ''
     let source =
@@ -195,24 +218,62 @@ export async function POST(req: Request) {
       )
     }
 
-    await db.insert(documents).values(
-      chunks.map((content, i) => ({
-        orgId: orgId,
+    // 1. Store the full text FIRST so we get its id back.
+    const [fileRow] = await db
+      .insert(documentFiles)
+      .values({
+        orgId,
+        matterId,
+        uploadedBy: userId,
         source,
-        chunkIndex: i,
-        content,
-        embedding: embeddings[i],
-      })),
-    )
+        fullText: rawText,
+      })
+      .returning({ id: documentFiles.id })
 
-    // Store the full text once, for the document viewer (chunks stay for the AI).
-    await db.insert(documentFiles).values({ orgId, source, fullText: rawText })
+    // 2. Store the chunks, each linked to its file (and case, if any).
+    try {
+      await db.insert(documents).values(
+        chunks.map((content, i) => ({
+          orgId,
+          matterId,
+          fileId: fileRow.id,
+          source,
+          chunkIndex: i,
+          content,
+          embedding: embeddings[i],
+        })),
+      )
+    } catch (err) {
+      // Don't leave a file behind with no searchable chunks.
+      await db.delete(documentFiles).where(eq(documentFiles.id, fileRow.id))
+      throw err
+    }
+
+    // 3. Audit: who uploaded what, into which case.
+    await logAction({
+      orgId,
+      userId,
+      matterId,
+      action: 'document.uploaded',
+      targetType: 'document',
+      targetId: fileRow.id,
+      detail: source,
+    })
 
     return Response.json({
+      id: fileRow.id,
       source,
       chunks: chunks.length,
       inserted: chunks.length,
     })
+
+    /** ************ ************ *********************************
+        Two things changed here:
+        The order is reversed. The file row is inserted first, because the chunks need its ID for fileId.
+        Failed chunk inserts are cleaned up. If the chunk insert fails, the file row is deleted, so the documents list never shows a file the AI can't search.
+        Your main uploader on /app doesn't send a matterId, so it keeps creating firm-wide law books exactly as before.
+        
+     * ************ ************ *********************************/
   } catch (err) {
     console.error('ingest error:', err)
     return Response.json(

@@ -7,6 +7,10 @@ import { db } from '@/lib/db'
 import PageJump from '@/components/PageJump'
 import DocSearch from '@/components/DocSearch'
 
+// isUuid turns a junk URL like /app/documents/abc into a clean 404 instead of a 500.
+import { getMatterAccess, isUuid } from '@/lib/matter-access'
+import { logAction } from '@/lib/audit'
+
 const PAGE_SIZE = 3000 // characters shown per page
 
 // Build a windowed list of page numbers: 1 … 47 48 [49] 50 51 … 477
@@ -69,17 +73,50 @@ export default async function DocumentViewPage({
 }) {
   const { id } = await params
   const sp = await searchParams
-  const { orgId } = await auth()
-  if (!orgId) notFound()
 
-  // Title + total length (tenant wall enforced by `and org_id`).
+  // ***** edited *****
+
+  const { userId, orgId } = await auth()
+  if (!userId || !orgId) notFound()
+
+  // A malformed id would make Postgres throw (500) instead of a clean 404.
+  if (!isUuid(id)) notFound()
+
+  /** matter_id is added to the select, so the page knows whether this file is a law book or a case document. */
+  // LAYER 1 — firm wall: the file must belong to this org.
   const meta = await db.execute(sql`
-    select source, length(full_text) as len
+    select source, matter_id, length(full_text) as len
     from document_files
     where id = ${id} and org_id = ${orgId}
   `)
-  const row = meta.rows[0] as { source: string; len: number } | undefined
+  const row = meta.rows[0] as
+    | { source: string; matter_id: string | null; len: number }
+    | undefined
   if (!row) notFound()
+
+  // LAYER 2 — ethical wall: a case document is only visible to that case's team.
+  // Law books (matter_id null) stay firm-wide.
+  if (row.matter_id) {
+    const access = await getMatterAccess(row.matter_id)
+    if (!access) notFound()
+  }
+
+  // ***** *****
+
+  // Audit: log when the document is OPENED, not on every page turn or search.
+  console.log(sp)
+
+  if (!sp.page && !sp.q) {
+    await logAction({
+      orgId,
+      userId,
+      matterId: row.matter_id,
+      action: 'document.view',
+      targetType: 'document',
+      targetId: id,
+      detail: row.source,
+    })
+  }
 
   const total = Number(row.len)
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
@@ -145,11 +182,12 @@ export default async function DocumentViewPage({
             Page {page} of {totalPages}
           </p>
         </div>
+        {/* prettier-ignore */}
         <Link
-          href='/app/documents'
+          href={row.matter_id ? `/app/matters/${row.matter_id}` : '/app/documents'}
           className='shrink-0 rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50'
         >
-          All documents
+          {row.matter_id ? 'Back to case' : 'All documents'}
         </Link>
       </div>
 

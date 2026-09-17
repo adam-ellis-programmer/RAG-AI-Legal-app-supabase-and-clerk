@@ -17,6 +17,10 @@ export const documents = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     orgId: text("org_id").notNull(),          // Clerk organization id — the tenant wall
+    // Which file this chunk came from (lets queries filter by ticked documents).
+    fileId: uuid("file_id").references(() => documentFiles.id, { onDelete: "cascade" }), // The id of the document_files row this chunk came from
+    // null = firm-wide law book; set = case document (team only).
+    matterId: uuid("matter_id").references(() => matters.id, { onDelete: "cascade" }),
     source: text("source").notNull(),          // original filename
     chunkIndex: integer("chunk_index").notNull(),
     content: text("content").notNull(),
@@ -25,22 +29,30 @@ export const documents = pgTable(
   },
   (t) => [
     index("documents_org_id_idx").on(t.orgId),
+    index("documents_file_id_idx").on(t.fileId),
+    index("documents_matter_id_idx").on(t.matterId),
     index("documents_embedding_idx").using("hnsw", t.embedding.op("vector_cosine_ops")),
   ]
 );
-
+// prettier-ignore
 export const documentFiles = pgTable(
   'document_files',
   {
     id: uuid('id').primaryKey().defaultRandom(),
     orgId: text('org_id').notNull(),
+    // null = firm-wide law book; set = case document (team only).
+    matterId: uuid('matter_id').references(() => matters.id, { onDelete: 'cascade' }),
+    uploadedBy: text('uploaded_by'), // Clerk userId (null for older uploads)
     source: text('source').notNull(),
     fullText: text('full_text').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
   },
-  (t) => [index('document_files_org_id_idx').on(t.orgId)],
+  (t) => [
+    index('document_files_org_id_idx').on(t.orgId),
+    index('document_files_matter_id_idx').on(t.matterId),
+  ],
 )
 
 // ===== added on 16th Sept 2026 ===========
@@ -104,7 +116,7 @@ export const matterMembers = pgTable(
 
 // Audit log: an immutable record of who did what, when — for compliance
 // and so a case lead can see who accessed/queried a matter's documents.
-// prettier-ignore
+// prettie-ignore
 export const auditLogs = pgTable(
   'audit_logs',
   {

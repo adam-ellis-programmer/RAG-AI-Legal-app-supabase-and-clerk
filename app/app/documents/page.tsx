@@ -31,10 +31,10 @@ export default async function DocumentsPage() {
       select id, source, created_at, left(full_text, 160) as preview
       from document_files
       where org_id = ${orgId}
+        and matter_id is null
       order by created_at desc
     `)
     docs = result.rows as typeof docs
-    
   } catch (err) {
     console.error('documents query failed:', err)
     return (
@@ -60,7 +60,8 @@ export default async function DocumentsPage() {
         <div>
           <h1 className='font-serif text-2xl text-slate-900'>Documents</h1>
           <p className='mt-1 text-sm text-slate-500'>
-            Everything your organisation has uploaded.
+            Firm-wide reference documents (law books). Case files live on each
+            case.
           </p>
         </div>
         <Link

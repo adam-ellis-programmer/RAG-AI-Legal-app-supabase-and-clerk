@@ -128,6 +128,7 @@ export async function POST(req: Request) {
       select content, source, chunk_index, 1 - (embedding <=> ${vectorLiteral}::vector) as similarity
       from documents
       where org_id = ${orgId}
+        and matter_id is null
       order by embedding <=> ${vectorLiteral}::vector
       limit ${TOP_K}
     `)
