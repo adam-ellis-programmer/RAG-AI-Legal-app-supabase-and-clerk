@@ -20,24 +20,36 @@ export const maxDuration = 60
 
 const voyage = new VoyageAIClient({ apiKey: process.env.VOYAGE_API_KEY })
 
+// ---------------------------------------------------------
 // Split text into overlapping character windows. Overlap keeps sentences that
 // straddle a boundary from being lost. Simple and predictable — a good starting
 // point you can later upgrade to sentence-aware splitting.
-function chunkText(text: string, chunkSize = 1000, overlap = 150): string[] {
-  const clean = text.replace(/\s+/g, ' ').trim()
+// ---------------------------------------------------------
+/** ===== ADDED IN AND CHANGED FOR START CHAR CODE ===== */
+type Chunk = { content: string; start: number }
+
+// Collapse whitespace ONCE, here. The cleaned text is what we store as
+// full_text and what we cut into chunks, so a chunk's `start` is a real
+// position in the stored document — which is how citations find their page.
+export function cleanText(text: string) {
+  return text.replace(/\s+/g, ' ').trim()
+}
+
+// Split cleaned text into overlapping character windows. Overlap keeps
+// sentences that straddle a boundary from being lost.
+function chunkText(clean: string, chunkSize = 1000, overlap = 150): Chunk[] {
   if (!clean) return []
 
-  const chunks: string[] = []
+  const chunks: Chunk[] = []
   let start = 0
   while (start < clean.length) {
     const end = Math.min(start + chunkSize, clean.length)
-    chunks.push(clean.slice(start, end))
+    chunks.push({ content: clean.slice(start, end), start })
     if (end === clean.length) break
     start += chunkSize - overlap
   }
   return chunks
 }
-
 /**
  "This function takes the array of text chunks made earlier. 
   The outer loop steps i forward by 100 each iteration, and slice(i, i + 100) 
@@ -80,19 +92,19 @@ function chunkText(text: string, chunkSize = 1000, overlap = 150): string[] {
 
 
  */
+/** ===== updated for startChar code ===== */
 
 // Embed chunks in batches so a big document doesn't exceed Voyage's per-request limits.
-async function embedChunks(chunks: string[]): Promise<number[][]> {
+async function embedChunks(chunks: Chunk[]): Promise<number[][]> {
   const batchSize = 100
-  const vectors: number[][] = [] // it's "the numerical embedding of each chunk
+  const vectors: number[][] = []
 
   for (let i = 0; i < chunks.length; i += batchSize) {
-    //   grabbing a handful of already-made chunks (up to 100 of them) to send together.
-    const batch = chunks.slice(i, i + batchSize)
+    const batch = chunks.slice(i, i + batchSize).map((c) => c.content)
     const res = await voyage.embed({
       input: batch,
       model: 'voyage-4',
-      inputType: 'document', // storing for later search -> "document" (queries use "query")
+      inputType: 'document',
     })
     for (const item of res.data ?? []) {
       if (item.embedding) vectors.push(item.embedding)
@@ -197,8 +209,12 @@ export async function POST(req: Request) {
       )
     }
 
+    /** ===== changed because of start char code ===== */
     // Chunk -> embed -> store.
-    const chunks = chunkText(rawText)
+    // const chunks = chunkText(rawText)
+    // Clean once; store and chunk the SAME string so offsets line up.
+    const cleaned = cleanText(rawText)
+    const chunks = chunkText(cleaned)
     // console.log('the chunks: ', chunks)
 
     if (chunks.length === 0) {
@@ -226,20 +242,21 @@ export async function POST(req: Request) {
         matterId,
         uploadedBy: userId,
         source,
-        fullText: rawText,
+        fullText: cleaned,
       })
       .returning({ id: documentFiles.id })
 
     // 2. Store the chunks, each linked to its file (and case, if any).
     try {
       await db.insert(documents).values(
-        chunks.map((content, i) => ({
+        chunks.map((chunk, i) => ({
           orgId,
           matterId,
           fileId: fileRow.id,
           source,
           chunkIndex: i,
-          content,
+          startChar: chunk.start,
+          content: chunk.content,
           embedding: embeddings[i],
         })),
       )

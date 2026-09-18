@@ -7,11 +7,11 @@ import { db } from '@/lib/db'
 import PageJump from '@/components/PageJump'
 import DocSearch from '@/components/DocSearch'
 
+import { PAGE_SIZE } from '@/lib/pagination' // characters shown per page
+
 // isUuid turns a junk URL like /app/documents/abc into a clean 404 instead of a 500.
 import { getMatterAccess, isUuid } from '@/lib/matter-access'
 import { logAction } from '@/lib/audit'
-
-const PAGE_SIZE = 3000 // characters shown per page
 
 // Build a windowed list of page numbers: 1 … 47 48 [49] 50 51 … 477
 function pageWindow(current: number, total: number): (number | '...')[] {
@@ -69,7 +69,7 @@ export default async function DocumentViewPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ page?: string; q?: string }>
+  searchParams: Promise<{ page?: string; q?: string; from?: string }>
 }) {
   const { id } = await params
   const sp = await searchParams
@@ -106,7 +106,9 @@ export default async function DocumentViewPage({
   // Audit: log when the document is OPENED, not on every page turn or search.
   console.log(sp)
 
-  if (!sp.page && !sp.q) {
+  // A citation link carries ?page= and ?from=cite, so treat it as an opening too.
+  const arrivedFresh = (!sp.page && !sp.q) || sp.from === 'cite'
+  if (arrivedFresh) {
     await logAction({
       orgId,
       userId,

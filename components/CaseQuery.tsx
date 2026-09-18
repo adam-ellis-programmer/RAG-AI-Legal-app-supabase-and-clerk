@@ -5,12 +5,14 @@ import Link from 'next/link'
 import { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 type Doc = { id: string; source: string }
+
 type Source = {
   n: number
   fileId: string
   source: string
   kind: 'case' | 'law'
   chunkIndex: number
+  page: number | null
   similarity: number
 }
 
@@ -35,8 +37,11 @@ export function CaseQuery({
   function toggle(id: string) {
     setSelected((prev) => {
       const next = new Set(prev)
+      // toggle (flips)
       if (next.has(id)) next.delete(id)
       else next.add(id)
+      console.log('toggle next: ', next)
+
       return next
     })
   }
@@ -48,6 +53,8 @@ export function CaseQuery({
         if (on) next.add(d.id)
         else next.delete(d.id)
       }
+      console.log('setGroup next: ', next)
+
       return next
     })
   }
@@ -108,6 +115,7 @@ export function CaseQuery({
     empty: string
   }) {
     const allOn = docs.length > 0 && docs.every((d) => selected.has(d.id))
+
     return (
       <div>
         <div className='mb-2 flex items-center justify-between'>
@@ -132,7 +140,7 @@ export function CaseQuery({
               <li key={d.id}>
                 <label className='flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-sm text-slate-700 hover:bg-slate-50'>
                   <input
-                    type='checkbox'
+                    type='checkbox' 
                     checked={selected.has(d.id)}
                     onChange={() => toggle(d.id)}
                     className='h-4 w-4 accent-slate-900'
@@ -260,7 +268,11 @@ export function CaseQuery({
           </h3>
           <ul className='space-y-1 text-sm'>
             {sources.map((s) => (
-              <li key={s.n} className='flex items-center gap-2'>
+              <li
+                key={s.n}
+                id={`source-${s.n}`}
+                className='flex scroll-mt-4 items-center gap-2'
+              >
                 <span className='w-8 shrink-0 text-slate-400'>[{s.n}]</span>
                 <span
                   className={`rounded-full px-2 py-0.5 text-xs ${
@@ -272,14 +284,19 @@ export function CaseQuery({
                   {s.kind === 'case' ? 'Case' : 'Law'}
                 </span>
                 <Link
-                  href={`/app/documents/${s.fileId}`}
+                  href={
+                    s.page
+                      ? `/app/documents/${s.fileId}?page=${s.page}&from=cite`
+                      : `/app/documents/${s.fileId}`
+                  }
                   prefetch={false}
                   className='truncate text-slate-700 underline-offset-2 hover:underline'
                 >
                   {s.source}
                 </Link>
                 <span className='ml-auto shrink-0 text-xs text-slate-400'>
-                  chunk {s.chunkIndex} · {s.similarity}
+                  {s.page ? `page ${s.page}` : `chunk ${s.chunkIndex}`} ·{' '}
+                  {s.similarity}
                 </span>
               </li>
             ))}

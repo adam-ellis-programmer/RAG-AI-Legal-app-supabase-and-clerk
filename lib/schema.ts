@@ -23,6 +23,7 @@ export const documents = pgTable(
     matterId: uuid("matter_id").references(() => matters.id, { onDelete: "cascade" }),
     source: text("source").notNull(),          // original filename
     chunkIndex: integer("chunk_index").notNull(),
+    startChar: integer("start_char"),   // where this chunk begins in document_files.full_text
     content: text("content").notNull(),
     embedding: vector("embedding", { dimensions: 1024 }).notNull(), // Voyage voyage-4
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

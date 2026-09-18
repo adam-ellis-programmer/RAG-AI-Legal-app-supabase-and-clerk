@@ -7,7 +7,7 @@ import { db } from '@/lib/db'
 import { documentFiles } from '@/lib/schema'
 import { getMatterAccess, isUuid } from '@/lib/matter-access'
 import { logAction } from '@/lib/audit'
-
+import { pageForChar } from '@/lib/pagination'
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
@@ -27,6 +27,7 @@ type Row = {
   content: string
   source: string
   chunk_index: number
+  start_char: number | null
   file_id: string
   matter_id: string | null
   similarity: number
@@ -125,10 +126,12 @@ export async function POST(
       fileIds.map((fid) => sql`${fid}::uuid`),
       sql`, `,
     )
+
+    // Floor: chunks less relevant than MIN_SIMILARITY are dropped (keep an eye on this).
     const result = await db.execute(sql`
-      select content, source, chunk_index, file_id, matter_id, similarity, rn
+      select content, source, chunk_index, start_char, file_id, matter_id, similarity, rn
       from (
-        select content, source, chunk_index, file_id, matter_id,
+        select content, source, chunk_index, start_char, file_id, matter_id,
                1 - (embedding <=> ${vectorLiteral}::vector) as similarity,
                row_number() over (
                  partition by file_id
@@ -139,11 +142,10 @@ export async function POST(
           and file_id in (${idList})
           and (matter_id is null or matter_id = ${matterId})
       ) ranked
-      -- ******* KEEP AN EYE ON THIS MIN_SIMILARITY ************
-        where rn <= ${PER_DOC_K}
+      where rn <= ${PER_DOC_K}
         and similarity >= ${MIN_SIMILARITY}
-        order by rn, similarity desc
-        limit ${MAX_CHUNKS}
+      order by rn, similarity desc
+      limit ${MAX_CHUNKS}
     `)
 
     // Best matches first for the [1], [2] labels.
@@ -180,6 +182,7 @@ export async function POST(
       source: r.source,
       kind: r.matter_id ? 'case' : 'law',
       chunkIndex: r.chunk_index,
+      page: pageForChar(r.start_char), // null for documents ingested before start_char existed
       similarity: Number(Number(r.similarity).toFixed(3)),
     }))
 
