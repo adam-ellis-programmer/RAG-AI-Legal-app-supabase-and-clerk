@@ -65,7 +65,7 @@ export function CaseQuery({
     setError(null)
     setAnswer('')
     setSources([])
-
+// 
     try {
       const res = await fetch(`/api/matters/${matterId}/query`, {
         method: 'POST',
