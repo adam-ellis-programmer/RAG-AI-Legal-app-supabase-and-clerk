@@ -7,7 +7,7 @@ import { db } from '@/lib/db'
 import PageJump from '@/components/PageJump'
 import DocSearch from '@/components/DocSearch'
 
-import { PAGE_SIZE } from '@/lib/pagination' // characters shown per page
+import { PAGE_SIZE, CHUNK_SIZE } from '@/lib/pagination' // characters shown per page, chunk size for highlighting
 
 // isUuid turns a junk URL like /app/documents/abc into a clean 404 instead of a 500.
 import { getMatterAccess, isUuid } from '@/lib/matter-access'
@@ -31,7 +31,7 @@ function pageWindow(current: number, total: number): (number | '...')[] {
     if (range[0] > 2) out.push('...')
   }
   out.push(...range)
-  //
+
   if (range[range.length - 1] < total) {
     if (range[range.length - 1] < total - 1) out.push('...')
     out.push(total)
@@ -49,7 +49,6 @@ function highlight(text: string, term: string): React.ReactNode {
   let i = lower.indexOf(t)
   let key = 0
 
-  // does this loop start from the begining each time
   while (i !== -1) {
     parts.push(text.slice(from, i))
     parts.push(
@@ -64,12 +63,46 @@ function highlight(text: string, term: string): React.ReactNode {
   return parts
 }
 
+// ============== HIGHLIGHT RANGE ========================
+// Mark the cited passage. `at` is the chunk's start position in the whole
+// document; `startPos` is where this page begins. Subtracting gives the offset
+// within the page, which may be negative or past the end when a chunk straddles
+// a page boundary, so both ends are clamped to what's actually on screen.
+function highlightRange(
+  pageText: string,
+  at: number,
+  pageStart: number,
+): React.ReactNode {
+  const from = Math.max(0, at - pageStart)
+  const to = Math.min(pageText.length, at + CHUNK_SIZE - pageStart)
+  if (to <= 0 || from >= pageText.length) return pageText
+
+  return (
+    <>
+      {pageText.slice(0, from)}
+      <mark
+        id='cited'
+        className='rounded bg-amber-100 px-0.5 ring-1 ring-amber-300'
+      >
+        {pageText.slice(from, to)}
+      </mark>
+      {pageText.slice(to)}
+    </>
+  )
+}
+// ============== HIGHLIGHT RANGE ========================
+
 export default async function DocumentViewPage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ page?: string; q?: string; from?: string }>
+  searchParams: Promise<{
+    page?: string
+    q?: string
+    from?: string
+    at?: string
+  }>
 }) {
   const { id } = await params
   const sp = await searchParams
@@ -104,7 +137,7 @@ export default async function DocumentViewPage({
   // ***** *****
 
   // Audit: log when the document is OPENED, not on every page turn or search.
-  console.log(sp)
+  // console.log(sp)
 
   // A citation link carries ?page= and ?from=cite, so treat it as an opening too.
   const arrivedFresh = (!sp.page && !sp.q) || sp.from === 'cite'
@@ -126,6 +159,8 @@ export default async function DocumentViewPage({
     totalPages,
     Math.max(1, parseInt(sp.page ?? '1', 10) || 1),
   )
+
+  /* Note startPos - 1. Your slice query uses substring(... from ${startPos}), and Postgres counts from 1 while start_char counts from 0, so the page's zero-based start is startPos - 1. Getting this wrong shifts the highlight by one character, which is invisible, but it's worth being right. */
   const startPos = (page - 1) * PAGE_SIZE + 1
 
   // Only the current page's slice (scales to books).
@@ -174,6 +209,10 @@ export default async function DocumentViewPage({
   }
 
   const windowPages = pageWindow(page, totalPages)
+
+  // `at` is a character offset from a citation link; ignore anything malformed.
+  const at = sp.at != null ? Number(sp.at) : NaN
+  const citedAt = Number.isFinite(at) && at >= 0 ? at : null
 
   return (
     <main className='mx-auto max-w-3xl px-6 py-10'>
@@ -234,8 +273,18 @@ export default async function DocumentViewPage({
         </div>
       )}
 
+      {citedAt !== null && !q && (
+        <p className='mb-3 text-xs text-slate-500'>
+          The highlighted passage is the one the answer cited.
+        </p>
+      )}
+
       <article className='whitespace-pre-wrap rounded-xl border border-slate-200 bg-white p-6 text-sm leading-relaxed text-slate-800'>
-        {q ? highlight(pageText, q) : pageText}
+        {q
+          ? highlight(pageText, q)
+          : citedAt !== null
+            ? highlightRange(pageText, citedAt, startPos - 1)
+            : pageText}
       </article>
 
       {/* Numbered navigation */}

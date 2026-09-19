@@ -13,6 +13,7 @@ type Source = {
   kind: 'case' | 'law'
   chunkIndex: number
   page: number | null
+  startChar: number | null
   similarity: number
 }
 
@@ -53,7 +54,7 @@ export function CaseQuery({
         if (on) next.add(d.id)
         else next.delete(d.id)
       }
-      console.log('setGroup next: ', next)
+      console.log('setGroup next: ', on, next)
 
       return next
     })
@@ -65,7 +66,7 @@ export function CaseQuery({
     setError(null)
     setAnswer('')
     setSources([])
-// 
+    //
     try {
       const res = await fetch(`/api/matters/${matterId}/query`, {
         method: 'POST',
@@ -140,7 +141,7 @@ export function CaseQuery({
               <li key={d.id}>
                 <label className='flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-sm text-slate-700 hover:bg-slate-50'>
                   <input
-                    type='checkbox' 
+                    type='checkbox'
                     checked={selected.has(d.id)}
                     onChange={() => toggle(d.id)}
                     className='h-4 w-4 accent-slate-900'
@@ -286,10 +287,12 @@ export function CaseQuery({
                 <Link
                   href={
                     s.page
-                      ? `/app/documents/${s.fileId}?page=${s.page}&from=cite`
+                      ? `/app/documents/${s.fileId}?page=${s.page}&from=cite&at=${s.startChar}#cited`
                       : `/app/documents/${s.fileId}`
                   }
                   prefetch={false}
+                  target='_blank'
+                  rel='noopener'
                   className='truncate text-slate-700 underline-offset-2 hover:underline'
                 >
                   {s.source}

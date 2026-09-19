@@ -182,7 +182,8 @@ export async function POST(
       source: r.source,
       kind: r.matter_id ? 'case' : 'law',
       chunkIndex: r.chunk_index,
-      page: pageForChar(r.start_char), // null for documents ingested before start_char existed
+      page: pageForChar(r.start_char),
+      startChar: r.start_char,
       similarity: Number(Number(r.similarity).toFixed(3)),
     }))
 
