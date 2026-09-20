@@ -269,7 +269,7 @@ export default function Home() {
               >
                 {m.content || (loading ? '…' : '')}
               </span>
-{/* this is some text text to be deleted: const test = "hello world k" */}
+
               {/* Citations under assistant answers */}
               {m.role === 'assistant' && m.sources && m.sources.length > 0 && (
                 <div className='mt-2 text-left text-xs text-zinc-500'>
