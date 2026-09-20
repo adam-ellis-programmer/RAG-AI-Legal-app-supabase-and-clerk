@@ -5,7 +5,7 @@ import { streamText } from 'ai'
 import { sql } from 'drizzle-orm'
 import { VoyageAIClient } from 'voyageai'
 import { db } from '@/lib/db'
-
+import { pageForChar } from '@/lib/pagination'
 /**
  * quick notes
  * -- chunk_index is a permanent property of the chunk, set at ingestion time & answers "where in the source document did this come from?"
@@ -124,8 +124,9 @@ export async function POST(req: Request) {
      * ~~~~~~~~~~~~~~~~~~~~
      */
 
-    const result = await db.execute(sql`
-      select content, source, chunk_index, 1 - (embedding <=> ${vectorLiteral}::vector) as similarity
+      const result = await db.execute(sql`
+      select content, source, chunk_index, file_id, start_char,
+             1 - (embedding <=> ${vectorLiteral}::vector) as similarity
       from documents
       where org_id = ${orgId}
         and matter_id is null
@@ -139,6 +140,8 @@ export async function POST(req: Request) {
       content: string
       source: string
       chunk_index: number
+      file_id: string | null
+      start_char: number | null
       similarity: number
     }>
 
@@ -167,8 +170,11 @@ export async function POST(req: Request) {
     // Build a compact source list for the UI. Order matches the [1], [2] labels.
     const sources = rows.map((r, i) => ({
       n: i + 1,
+      fileId: r.file_id,
       source: r.source,
       chunkIndex: r.chunk_index,
+      page: pageForChar(r.start_char),
+      startChar: r.start_char,
       similarity: Number(r.similarity.toFixed(3)),
     }))
 

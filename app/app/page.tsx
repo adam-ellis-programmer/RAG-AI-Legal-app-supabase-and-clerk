@@ -1,12 +1,16 @@
-// app/page.tsx
+// app/app/page.tsx
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import Link from 'next/link'
 
 type Source = {
   n: number
+  fileId: string | null
   source: string
   chunkIndex: number
+  page: number | null
+  startChar: number | null
   similarity: number
 }
 type Message = {
@@ -14,9 +18,6 @@ type Message = {
   content: string
   sources?: Source[]
 }
-
-
-
 
 export default function Home() {
   // ----- ingestion state -----
@@ -39,6 +40,7 @@ export default function Home() {
 
   // ----- ingestion actions -----
   // Main ingest function
+  // prettier-ignore
   async function ingest(form: FormData) {
     setIngesting(true)
     setIngestMsg(null)
@@ -46,7 +48,7 @@ export default function Home() {
       const res = await fetch('/api/ingest', { method: 'POST', body: form })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error || 'Ingestion failed')
-      setIngestMsg(`Stored ${data.inserted} chunk(s) from "${data.source}".`)
+           setIngestMsg(`Added "${data.source}" to the firm library (${data.inserted} passages).`)
     } catch (e) {
       setIngestMsg(e instanceof Error ? e.message : 'Ingestion failed')
     } finally {
@@ -100,12 +102,12 @@ export default function Home() {
       // Pull the source list out of the response header.
       let sources: Source[] = []
       const raw = res.headers.get('X-Sources')
-      console.log('raw: ', raw)
+      // console.log('raw: ', raw)
 
       if (raw) {
         try {
           sources = JSON.parse(decodeURIComponent(raw))
-          console.log('sources: ', sources)
+          // console.log('sources: ', sources)
         } catch {
           /* ignore malformed header */
         }
@@ -130,7 +132,7 @@ export default function Home() {
         setMessages((prev) => {
           const u = [...prev]
           const last = u[u.length - 1]
-          console.log('last', last)
+          // console.log('last', last)
 
           //  * So the line is doing: "replace the last message slot with a fresh copy of that message, identical except content now has the new chunk appended." You override the slot (yes), but with a new object that preserves the other fields and gives React something new to see.
 
@@ -152,25 +154,32 @@ export default function Home() {
     }
   }
 
+  // *** HAVE TO BE ADMIN TO UPLOAD HERE ***
+
   // ----- markup ----------
 
   return (
     <main className='mx-auto flex min-h-screen max-w-3xl flex-col gap-6 p-4 sm:p-6'>
       <header>
-        <h1 className='text-xl font-semibold text-zinc-900'>
-          Legal document assistant
-        </h1>
+        <h1 className='text-xl font-semibold text-zinc-900'>Firm library</h1>
         <p className='text-sm text-zinc-500'>
-          Add documents, then ask questions answered from their contents with
-          citations.
+          Shared reference material — legislation, textbooks, precedents.
+          Everyone in the firm can read these and ask questions about them.
         </p>
       </header>
 
       {/* ---------------- Ingestion panel ---------------- */}
       <section className='rounded-xl border border-zinc-200 bg-white p-4'>
-        <h2 className='mb-3 text-sm font-semibold text-zinc-700'>
-          Add documents
+        <h2 className='mb-1 text-sm font-semibold text-zinc-700'>
+          Add to the firm library
         </h2>
+        <p className='mb-3 rounded-lg bg-amber-50 p-2 text-xs text-amber-900 ring-1 ring-amber-200'>
+          Anything added here is visible to everyone in the firm. Client files
+          belong on their case, where only the case team can see them.{' '}
+          <Link href='/app/clients' className='font-medium underline'>
+            Go to clients
+          </Link>
+        </p>
 
         <div className='grid gap-4 md:grid-cols-2'>
           {/* Paste text */}
@@ -193,7 +202,7 @@ export default function Home() {
               disabled={ingesting || !pasteText.trim()}
               className='rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50'
             >
-              {ingesting ? 'Ingesting…' : 'Ingest text'}
+              {ingesting ? 'Adding…' : 'Add to library'}
             </button>
           </div>
 
@@ -217,7 +226,7 @@ export default function Home() {
                 : 'border-zinc-300 text-zinc-500 hover:border-zinc-400')
             }
           >
-            <p className='font-medium'>Drop a PDF here</p>
+            <p className='font-medium'>Drop a reference PDF here</p>
             <p className='text-xs'>or click to browse</p>
             <input
               ref={fileInputRef}
@@ -240,7 +249,8 @@ export default function Home() {
         >
           {messages.length === 0 && (
             <p className='mt-8 text-center text-sm text-zinc-400'>
-              Ask a question about your documents.
+              Ask a question about the firm library. For questions about a
+              client&apos;s case, open the case instead.
             </p>
           )}
 
@@ -259,15 +269,24 @@ export default function Home() {
               >
                 {m.content || (loading ? '…' : '')}
               </span>
-
+{/* this is some text text to be deleted: const test = "hello world k" */}
               {/* Citations under assistant answers */}
               {m.role === 'assistant' && m.sources && m.sources.length > 0 && (
                 <div className='mt-2 text-left text-xs text-zinc-500'>
                   <p className='font-medium text-zinc-600'>Sources</p>
+                  {/* prettier-ignore */}
                   <ul className='mt-1 space-y-0.5'>
-                    {m.sources.map((s) => (
+                       {m.sources.map((s) => (
                       <li key={s.n}>
-                        [{s.n}] {s.source} — chunk {s.chunkIndex} ·{' '}
+                        [{s.n}]{' '}
+                        {s.page && s.fileId ? (
+                          <a href={`/app/documents/${s.fileId}?page=${s.page}&from=cite&at=${s.startChar}#cited`} target='_blank' rel='noopener' className='underline underline-offset-2 hover:text-zinc-900'>
+                            {s.source}
+                          </a>
+                        ) : (
+                          s.source
+                        )}{' '}
+                        — page {s.page ?? '?'} ·{' '}
                         {(s.similarity * 100).toFixed(0)}% match
                       </li>
                     ))}
