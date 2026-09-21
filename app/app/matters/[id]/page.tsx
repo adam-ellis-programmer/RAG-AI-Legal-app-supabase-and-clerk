@@ -5,7 +5,7 @@ import { db } from '@/lib/db'
 import { and, desc, eq, isNull } from 'drizzle-orm'
 import { CaseQuery } from '@/components/CaseQuery'
 
-import { clients, matterMembers, documentFiles } from '@/lib/schema'
+import { clients, matterMembers, documentFiles, queries } from '@/lib/schema'
 import { CaseUpload } from '@/components/CaseUpload'
 // Ethical and firm wall
 import { getMatterAccess, getOrgMembers } from '@/lib/matter-access'
@@ -26,7 +26,7 @@ export default async function MatterPage({
   const isAdmin = membership.role === 'admin'
 
   // prettier-ignore
-  const [[client], team, orgMembers, caseDocs, lawBooks] = await Promise.all([
+  const [[client], team, orgMembers, caseDocs, lawBooks, history] = await Promise.all([
     db.select().from(clients).where(eq(clients.id, matter.clientId)).limit(1),
     db.select().from(matterMembers).where(eq(matterMembers.matterId, id)),
     getOrgMembers(orgId),
@@ -45,6 +45,19 @@ export default async function MatterPage({
       .from(documentFiles)
       .where(and(eq(documentFiles.orgId, orgId), isNull(documentFiles.matterId)))
       .orderBy(documentFiles.source),
+      // added in ...
+      db
+      .select({
+        id: queries.id,
+        question: queries.question,
+        userId: queries.userId,
+        status: queries.status,
+        createdAt: queries.createdAt,
+      })
+      .from(queries)
+      .where(and(eq(queries.matterId, id), eq(queries.orgId, orgId)))
+      .orderBy(desc(queries.createdAt))
+      .limit(20),
   ])
 
   const byUserId = new Map(orgMembers.map((m) => [m.userId, m]))
@@ -230,13 +243,45 @@ export default async function MatterPage({
 
         {/* Ask about this case — tick case files + law books */}
         {/* prettier-ignore */}
+        {/* Ask about this case — tick case files + law books */}
         <section className='mt-8'>
-        <h2 className='mb-3 text-sm font-semibold text-slate-700'>Ask about this case</h2>
-        <CaseQuery
-          matterId={matter.id}
-          caseDocs={caseDocs.map((d) => ({ id: d.id, source: d.source }))}
-          lawBooks={lawBooks}
-        />
+          <h2 className='mb-3 text-sm font-semibold text-slate-700'>
+            Ask about this case
+          </h2>
+          <CaseQuery
+            matterId={matter.id}
+            caseDocs={caseDocs.map((d) => ({ id: d.id, source: d.source }))}
+            lawBooks={lawBooks}
+          />
+        </section>
+
+        {/* Research history — saved questions and answers for the whole team */}
+        {/* prettier-ignore */}
+        <section className='mt-8'>
+          <h2 className='mb-3 text-sm font-semibold text-slate-700'>
+            Research history{' '}
+          <span className='font-normal text-slate-400'>({history.length})</span>
+        </h2>
+        {history.length === 0 ? (
+          <p className='text-sm text-slate-500'>
+            Questions asked on this case will be saved here for the whole team.
+          </p>
+        ) : (
+          <ul className='space-y-2'>
+            {history.map((h) => (
+              <li key={h.id}>
+                <Link href={`/app/matters/${id}/queries/${h.id}`} className='block rounded-xl border border-slate-200 p-3 transition hover:border-slate-300 hover:bg-slate-50'>
+                  <span className='line-clamp-2 text-sm text-slate-900'>{h.question}</span>
+                  <span className='mt-1 block text-xs text-slate-400'>
+                    {byUserId.get(h.userId)?.name ?? 'Former firm member'} ·{' '}
+                    {new Date(h.createdAt).toLocaleString()}
+                    {h.status !== 'complete' && ` · ${h.status === 'error' ? 'failed' : 'unfinished'}`}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
       </div>
     </main>

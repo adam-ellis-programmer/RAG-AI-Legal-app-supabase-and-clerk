@@ -4,7 +4,7 @@ import { streamText } from 'ai'
 import { and, eq, inArray, isNull, or, sql } from 'drizzle-orm'
 import { VoyageAIClient } from 'voyageai'
 import { db } from '@/lib/db'
-import { documentFiles } from '@/lib/schema'
+import { documentFiles, queries, type QuerySource } from '@/lib/schema'
 import { getMatterAccess, isUuid } from '@/lib/matter-access'
 import { logAction } from '@/lib/audit'
 import { pageForChar } from '@/lib/pagination'
@@ -176,7 +176,8 @@ export async function POST(
         `relevant to this question. Tell the user you could not find the answer in the ticked ` +
         `documents, and suggest they tick other documents or rephrase the question. Do not guess.`
 
-    const sources = rows.map((r, i) => ({
+    // Type the sources so they match what's stored. Change const sources = rows.map(...) to.
+    const sources: QuerySource[] = rows.map((r, i) => ({
       n: i + 1,
       fileId: r.file_id,
       source: r.source,
@@ -187,28 +188,76 @@ export async function POST(
       similarity: Number(Number(r.similarity).toFixed(3)),
     }))
 
-    // ---- 4. Audit: who asked what, on which case ----
+    // ---- 4. Save the question first, so it exists even if streaming fails ----
+    const [saved] = await db
+      .insert(queries)
+      .values({ orgId, matterId, userId, question, fileIds, sources })
+      .returning({ id: queries.id })
+
+    // ----  Audit: who asked what, on which case ----
     await logAction({
       orgId,
       userId,
       matterId,
       action: 'query.ask',
-      targetType: 'matter',
-      targetId: matterId,
+      targetType: 'query',
+      targetId: saved.id,
       detail: question.slice(0, 1000),
     })
 
     // ---- 5. Stream the answer, sources in a header (same pattern as /api/chat) ----
+    // ---- 4. Save the question first, so it exists even if streaming fails ----
+
+    await logAction({
+      orgId,
+      userId,
+      matterId,
+      action: 'query.ask',
+      targetType: 'query',
+      targetId: saved.id,
+      detail: question.slice(0, 1000),
+    })
+
+    /**
+     * How the saving works: 
+     * the row is inserted before streaming with status = 'streaming' and an empty answer. When Claude finishes, onFinish receives the whole text and fills it in. So a crash mid-answer leaves an honest record ("streaming" or "error"), not a missing one. The query ID also goes back in a header, so the page can link to it straight away.
+     */
+
+    // ---- 5. Stream the answer; store it once it's complete ----
     const stream = streamText({
       model: anthropic('claude-sonnet-5'),
       system,
       prompt: question,
+      onFinish: async ({ text }) => {
+        // NEW: when the last word has been generated, save the whole answer.
+        // Runs on the server after the last token, with the full text.
+        try {
+          await db
+            .update(queries)
+            .set({ answer: text, status: 'complete' })
+            .where(eq(queries.id, saved.id))
+        } catch (err) {
+          console.error('saving answer failed:', err)
+        }
+      },
+      onError: async () => {
+        // NEW: if generation fails part-way, record that instead.
+        try {
+          await db
+            .update(queries)
+            .set({ status: 'error' })
+            .where(eq(queries.id, saved.id))
+        } catch (err) {
+          console.error('marking query failed:', err)
+        }
+      },
     })
 
     return new Response(stream.textStream, {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
         'X-Sources': encodeURIComponent(JSON.stringify(sources)),
+        'X-Query-Id': saved.id,
       },
     })
   } catch (err) {

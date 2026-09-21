@@ -8,6 +8,7 @@ import {
   vector,
   index,
   uniqueIndex,
+  jsonb,
 } from 'drizzle-orm/pg-core'
 
 // lib/schema.ts — defines the documents table in TypeScript:
@@ -139,5 +140,45 @@ export const auditLogs = pgTable(
     index('audit_logs_matter_id_idx').on(t.matterId),
     index('audit_logs_user_id_idx').on(t.userId),
     index('audit_logs_created_at_idx').on(t.createdAt),
+  ],
+)
+
+
+
+// ---------- Query Source ---------------
+
+// One cited source, exactly as shown under an answer. Stored with the query so
+// a saved answer renders the same links and highlights it had when it was asked.
+export type QuerySource = {
+  n: number
+  fileId: string
+  source: string
+  kind: 'case' | 'law'
+  chunkIndex: number
+  page: number | null
+  startChar: number | null
+  similarity: number
+}
+
+// A question asked on a case, with its answer and what it was based on.
+// prettier-ignore
+export const queries = pgTable(
+  'queries',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    orgId: text('org_id').notNull(),
+    // Null is reserved for firm-library questions if we save those later.
+    matterId: uuid('matter_id').references(() => matters.id, { onDelete: 'cascade' }),
+    userId: text('user_id').notNull(),               // who asked
+    question: text('question').notNull(),
+    answer: text('answer').notNull().default(''),    // filled in when streaming finishes
+    fileIds: jsonb('file_ids').$type<string[]>().notNull(),      // what was ticked
+    sources: jsonb('sources').$type<QuerySource[]>().notNull(),  // what was cited
+    status: text('status').notNull().default('streaming'),       // streaming | complete | error
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index('queries_org_id_idx').on(t.orgId),
+    index('queries_matter_created_idx').on(t.matterId, t.createdAt),
   ],
 )
