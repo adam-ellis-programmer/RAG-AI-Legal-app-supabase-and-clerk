@@ -136,3 +136,55 @@ export async function removeMatterMember(formData: FormData) {
 
   revalidatePath(`/app/matters/${matterId}`)
 }
+
+
+// ----- change member role ----------
+
+
+export async function changeMemberRole(formData: FormData) {
+  const matterId = String(formData.get('matterId') || '')
+  const memberId = String(formData.get('memberId') || '')
+  const roleInput = String(formData.get('role') || '')
+  if (!matterId || !memberId || !isUuid(memberId)) return
+  if (!ROLES.includes(roleInput as Role)) throw new Error('Invalid role')
+  const role = roleInput as Role
+
+  // Both walls, and the person making the change must be a case admin.
+  const { userId, orgId } = await requireMatterAdmin(matterId)
+
+  // The membership row must belong to THIS case.
+  const [target] = await db
+    .select()
+    .from(matterMembers)
+    .where(and(eq(matterMembers.id, memberId), eq(matterMembers.matterId, matterId)))
+    .limit(1)
+  if (!target) throw new Error('Member not found on this case')
+  if (target.role === role) return // nothing to change
+
+  // Demoting an admin: the case must still have one afterwards.
+  if (target.role === 'admin') {
+    const admins = await db
+      .select({ id: matterMembers.id })
+      .from(matterMembers)
+      .where(and(eq(matterMembers.matterId, matterId), eq(matterMembers.role, 'admin')))
+    if (admins.length <= 1) throw new Error('A case must keep at least one admin')
+  }
+
+  // Update in place: no gap in the person's access.
+  await db.update(matterMembers).set({ role }).where(eq(matterMembers.id, target.id))
+
+  const orgMembers = await getOrgMembers(orgId)
+  const name = orgMembers.find((m) => m.userId === target.userId)?.name ?? target.userId
+
+  await logAction({
+    orgId,
+    userId,
+    matterId,
+    action: 'member.role_changed',
+    targetType: 'member',
+    targetId: target.userId,
+    detail: `${name} (${target.role} → ${role})`,
+  })
+
+  revalidatePath(`/app/matters/${matterId}`)
+}

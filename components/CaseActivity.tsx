@@ -18,7 +18,7 @@ export const ACTIVITY_FILTERS = {
   all: null,
   documents: ['document.uploaded', 'document.view'],
   questions: ['query.ask'],
-  team: ['matter.created', 'member.added', 'member.removed'],
+  team: ['matter.created', 'member.added', 'member.removed', 'member.role_changed'],
 } as const
 
 export type ActivityFilter = keyof typeof ACTIVITY_FILTERS
@@ -39,8 +39,10 @@ function describe(e: ActivityEntry, matterId: string) {
       return { verb: 'opened this case', label: null, href: null }
     case 'member.added':
       return { verb: 'added to the team:', label: e.detail, href: null }
-    case 'member.removed':
-      return { verb: 'removed from the team:', label: e.detail, href: null }
+      case 'member.removed':
+      return { verb: 'removed from the team:', label: e.detail, href: null }  
+    case 'member.role_changed':
+      return { verb: 'changed a role:', label: e.detail, href: null }
     case 'document.uploaded':
       return { verb: 'uploaded', label: e.detail, href: docHref }
     case 'document.view':

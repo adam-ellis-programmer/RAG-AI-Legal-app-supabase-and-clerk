@@ -12,7 +12,11 @@ import { CaseActivity, ACTIVITY_FILTERS, type ActivityFilter } from '@/component
 
 // Ethical and firm wall
 import { getMatterAccess, getOrgMembers } from '@/lib/matter-access'
-import { addMatterMember, removeMatterMember } from './actions'
+import {
+  addMatterMember,
+  removeMatterMember,
+  changeMemberRole,
+} from './actions'
 import { SubmitButton } from '@/components/SubmitButton'
 
 // The page now reads a search param for the filter (changed function signature)
@@ -171,26 +175,16 @@ export default async function MatterPage({
                     <span className='rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600'>
                       {member.role}
                     </span>
-                    {isAdmin && !isLastAdmin && (
-                      <form action={removeMatterMember}>
-                        <input
-                          type='hidden'
-                          name='matterId'
-                          value={matter.id}
-                        />
-                        <input
-                          type='hidden'
-                          name='memberId'
-                          value={member.id}
-                        />
-                        <button
-                          type='submit'
-                          className='rounded-md px-2 py-1 text-xs text-red-600 hover:bg-red-50'
-                        >
-                          Remove
-                        </button>
-                      </form>
-                    )}
+                    {isAdmin && (member.role === 'member' || !isLastAdmin) &&
+                      //  prettier-ignore
+                      <form action={changeMemberRole}>
+                        <input type='hidden' name='matterId' value={matter.id} />
+                        <input type='hidden' name='memberId' value={member.id} />
+                        <input type='hidden' name='role' value={member.role === 'admin' ? 'member' : 'admin'} />
+                        <SubmitButton pendingText='Saving…' className='rounded-md px-2 py-1 text-xs text-slate-600 hover:bg-slate-100'>
+                          {member.role === 'admin' ? 'Make member' : 'Make admin'}
+                        </SubmitButton>
+                      </form>}
                   </div>
                 </li>
               )
