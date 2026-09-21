@@ -37,6 +37,7 @@ export const runtime = 'nodejs'
 // const DEV_ORG_ID = 'dev-placeholder-org'
 const TOP_K = 5 // how many chunks to retrieve as context
 
+const MIN_SIMILARITY = 0.3 // ignore chunks less relevant than this
 const voyage = new VoyageAIClient({ apiKey: process.env.VOYAGE_API_KEY })
 
 // data pipe line and HOW IS STREAM WORKING (NO ASYNC)
@@ -130,6 +131,7 @@ export async function POST(req: Request) {
       from documents
       where org_id = ${orgId}
         and matter_id is null
+        and 1 - (embedding <=> ${vectorLiteral}::vector) >= ${MIN_SIMILARITY}
       order by embedding <=> ${vectorLiteral}::vector
       limit ${TOP_K}
     `)
