@@ -14,9 +14,10 @@ export type ActivityEntry = {
   createdAt: Date
 }
 
+// prettier-ignore
 export const ACTIVITY_FILTERS = {
   all: null,
-  documents: ['document.uploaded', 'document.view'],
+   documents: ['document.uploaded', 'document.view', 'document.deleted'],
   questions: ['query.ask'],
   team: ['matter.created', 'member.added', 'member.removed', 'member.role_changed'],
 } as const
@@ -46,7 +47,9 @@ function describe(e: ActivityEntry, matterId: string) {
     case 'document.uploaded':
       return { verb: 'uploaded', label: e.detail, href: docHref }
     case 'document.view':
-      return { verb: 'opened', label: e.detail, href: docHref }
+      return { verb: 'opened', label: e.detail, href: docHref }   // ← existing
+    case 'document.deleted':
+      return { verb: 'deleted', label: e.detail, href: null }
     case 'query.ask':
       return {
         verb: 'asked',

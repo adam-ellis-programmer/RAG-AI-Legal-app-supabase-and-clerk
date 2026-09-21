@@ -4,8 +4,11 @@ import { auth } from '@clerk/nextjs/server'
 import { sql } from 'drizzle-orm'
 import { db } from '@/lib/db'
 
+import { ConfirmSubmitButton } from '@/components/ConfirmSubmitButton'
+import { deleteDocument } from './actions'
+
 export default async function DocumentsPage() {
-  const { orgId } = await auth()
+  const { userId, orgId, has } = await auth()
 
   if (!orgId) {
     return (
@@ -17,6 +20,8 @@ export default async function DocumentsPage() {
     )
   }
 
+  const isOrgAdmin = has({ role: 'org:admin' })
+
   // One row per uploaded document, scoped to the active org (the tenant wall).
   // `left(full_text, 160)` fetches only a short preview - never the whole book.
   let docs: Array<{
@@ -24,11 +29,12 @@ export default async function DocumentsPage() {
     source: string
     created_at: string
     preview: string
+    uploaded_by: string | null
   }> = []
 
   try {
     const result = await db.execute(sql`
-      select id, source, created_at, left(full_text, 160) as preview
+      select id, source, created_at, left(full_text, 160) as preview, uploaded_by
       from document_files
       where org_id = ${orgId}
         and matter_id is null
@@ -84,26 +90,28 @@ export default async function DocumentsPage() {
         </div>
       ) : (
         <ul className='space-y-3'>
-          {docs.map((doc) => (
-            <li key={doc.id}>
-              <Link
-                href={`/app/documents/${doc.id}`}
-                className='block rounded-xl border border-slate-200 p-4 transition hover:border-slate-300 hover:bg-slate-50'
-              >
-                <div className='flex items-center justify-between'>
-                  <span className='font-medium text-slate-900'>
-                    {doc.source}
-                  </span>
-                  <span className='text-xs text-slate-400'>
+          {docs.map((doc) =>
+            // prettier-ignore
+            <li key={doc.id} className='flex items-start gap-2 rounded-xl border border-slate-200 transition hover:border-slate-300'>
+              <Link href={`/app/documents/${doc.id}`} prefetch={false} className='block min-w-0 flex-1 rounded-xl p-4 hover:bg-slate-50'>
+                <div className='flex items-center justify-between gap-3'>
+                  <span className='truncate font-medium text-slate-900'>{doc.source}</span>
+                  <span className='shrink-0 text-xs text-slate-400'>
                     {new Date(doc.created_at).toLocaleDateString()}
                   </span>
                 </div>
-                <p className='mt-1 line-clamp-2 text-sm text-slate-500'>
-                  {doc.preview}&hellip;
-                </p>
+                <p className='mt-1 line-clamp-2 text-sm text-slate-500'>{doc.preview}&hellip;</p>
               </Link>
-            </li>
-          ))}
+              {(isOrgAdmin || doc.uploaded_by === userId) && (
+                <form action={deleteDocument} className='p-3'>
+                  <input type='hidden' name='fileId' value={doc.id} />
+                  <ConfirmSubmitButton message={`Delete "${doc.source}" from the firm library? Everyone will lose access to it. This can't be undone.`} pendingText='Deleting…' className='rounded-md px-2 py-1 text-xs text-red-600 hover:bg-red-50'>
+                    Delete
+                  </ConfirmSubmitButton>
+                </form>
+              )}
+            </li>,
+          )}
         </ul>
       )}
     </main>

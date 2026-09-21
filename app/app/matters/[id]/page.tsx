@@ -19,6 +19,9 @@ import {
 } from './actions'
 import { SubmitButton } from '@/components/SubmitButton'
 
+import { ConfirmSubmitButton } from '@/components/ConfirmSubmitButton'
+import { deleteDocument } from '@/app/app/documents/actions'
+
 // The page now reads a search param for the filter (changed function signature)
 export default async function MatterPage({
   params,
@@ -257,22 +260,26 @@ export default async function MatterPage({
             </div>
           ) : (
             <ul className='space-y-2'>
-              {caseDocs.map((doc) => (
-                <li key={doc.id}>
-                  <Link
-                    href={`/app/documents/${doc.id}`}
-                    className='flex items-center justify-between rounded-xl border border-slate-200 p-4 transition hover:border-slate-300 hover:bg-slate-50'
-                  >
-                    <span className='font-medium text-slate-900'>
-                      {doc.source}
-                    </span>
-                    <span className='text-xs text-slate-400'>
+              {caseDocs.map((doc) =>
+                // prettier-ignore (*** UTH ***)
+                <li key={doc.id} className='flex items-center gap-2 rounded-xl border border-slate-200 transition hover:border-slate-300'>
+                  <Link href={`/app/documents/${doc.id}`} prefetch={false} className='flex min-w-0 flex-1 items-center justify-between gap-3 rounded-xl p-4 hover:bg-slate-50'>
+                    <span className='truncate font-medium text-slate-900'>{doc.source}</span>
+                    <span className='shrink-0 text-xs text-slate-400'>
                       {byUserId.get(doc.uploadedBy ?? '')?.name ?? 'Unknown'} ·{' '}
                       {new Date(doc.createdAt).toLocaleDateString()}
                     </span>
                   </Link>
-                </li>
-              ))}
+                  {isAdmin && (
+                    <form action={deleteDocument} className='pr-3'>
+                      <input type='hidden' name='fileId' value={doc.id} />
+                      <ConfirmSubmitButton message={`Delete "${doc.source}" from this case? Its passages will no longer be searchable. This can't be undone.`} pendingText='Deleting…' className='rounded-md px-2 py-1 text-xs text-red-600 hover:bg-red-50'>
+                        Delete
+                      </ConfirmSubmitButton>
+                    </form>
+                  )}
+                </li>,
+              )}
             </ul>
           )}
         </section>
