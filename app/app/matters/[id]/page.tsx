@@ -2,22 +2,29 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { db } from '@/lib/db'
-import { and, desc, eq, isNull } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNull } from 'drizzle-orm'
 import { CaseQuery } from '@/components/CaseQuery'
-
-import { clients, matterMembers, documentFiles, queries } from '@/lib/schema'
+// prettier-ignore
+import { clients, matterMembers, documentFiles, queries, auditLogs } from '@/lib/schema'
 import { CaseUpload } from '@/components/CaseUpload'
+// prettier-ignore
+import { CaseActivity, ACTIVITY_FILTERS, type ActivityFilter } from '@/components/CaseActivity'
+
 // Ethical and firm wall
 import { getMatterAccess, getOrgMembers } from '@/lib/matter-access'
 import { addMatterMember, removeMatterMember } from './actions'
 import { SubmitButton } from '@/components/SubmitButton'
 
+// The page now reads a search param for the filter (changed function signature)
 export default async function MatterPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ activity?: string }>
 }) {
   const { id } = await params
+  const sp = await searchParams
 
   // Layer 1 (firm) + Layer 2 (case team) — non-members get a 404.
   const access = await getMatterAccess(id)
@@ -60,7 +67,44 @@ export default async function MatterPage({
       .limit(20),
   ])
 
-  const byUserId = new Map(orgMembers.map((m) => [m.userId, m]))
+  const byUserId = new Map(orgMembers.map((m) => [m.userId, m])) // ← existing, keep
+
+  // Case activity: admins only. Pick the filter from the URL, defaulting to all.
+  const filter: ActivityFilter =
+    sp.activity && sp.activity in ACTIVITY_FILTERS
+      ? (sp.activity as ActivityFilter)
+      : 'all'
+  const filterActions = ACTIVITY_FILTERS[filter]
+
+  const activity = isAdmin
+    ? await db
+        .select({
+          id: auditLogs.id,
+          userId: auditLogs.userId,
+          userName: auditLogs.userName,
+          action: auditLogs.action,
+          targetType: auditLogs.targetType,
+          targetId: auditLogs.targetId,
+          detail: auditLogs.detail,
+          createdAt: auditLogs.createdAt,
+        })
+        .from(auditLogs)
+        .where(
+          // and() skips undefined, which is how "All" adds no filter.
+          and(
+            eq(auditLogs.matterId, id),
+            eq(auditLogs.orgId, orgId),
+            filterActions
+              ? inArray(auditLogs.action, [...filterActions])
+              : undefined,
+          ),
+        )
+        .orderBy(desc(auditLogs.createdAt))
+        .limit(50)
+    : []
+
+  const names = Object.fromEntries(orgMembers.map((m) => [m.userId, m.name]))
+
   const adminCount = team.filter((m) => m.role === 'admin').length
 
   const sortedTeam = [...team].sort((a, b) =>
@@ -92,7 +136,6 @@ export default async function MatterPage({
           <p className='mt-1 text-sm text-slate-400'>{matter.reference}</p>
         )}
       </div>
-
       {/* Case team */}
       <div className=''>
         <section className='mb-8'>
@@ -198,7 +241,6 @@ export default async function MatterPage({
               </form>
             ))}
         </section>
-
         {/* Case documents — visible to the case team only */}
         <section>
           <div className='mb-3 flex items-center justify-between'>
@@ -240,7 +282,6 @@ export default async function MatterPage({
             </ul>
           )}
         </section>
-
         {/* Ask about this case — tick case files + law books */}
         {/* prettier-ignore */}
         {/* Ask about this case — tick case files + law books */}
@@ -254,7 +295,6 @@ export default async function MatterPage({
             lawBooks={lawBooks}
           />
         </section>
-
         {/* Research history — saved questions and answers for the whole team */}
         {/* prettier-ignore */}
         <section className='mt-8'>
@@ -282,8 +322,21 @@ export default async function MatterPage({
             ))}
           </ul>
         )}
-      </section>
-      </div>
+      </section>{' '}
+        {/* ← end of Research history, keep */}
+        {/* Case activity — case admins only */}
+        {isAdmin &&
+          // prettier-ignore
+          <section id='activity' className='mt-8 scroll-mt-6'>
+          <h2 className='mb-1 text-sm font-semibold text-slate-700'>Case activity</h2>
+          <p className='mb-3 text-xs text-slate-500'>
+            Who opened, uploaded and asked what on this case. Visible to case admins only.
+          </p>
+          {/* prettier-ignore */}
+          <CaseActivity matterId={id} entries={activity} names={names} filter={filter} />
+        </section>}
+      </div>{' '}
+      {/* ← existing, keep */}
     </main>
   )
 }
