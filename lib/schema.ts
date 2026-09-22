@@ -143,8 +143,6 @@ export const auditLogs = pgTable(
   ],
 )
 
-
-
 // ---------- Query Source ---------------
 
 // One cited source, exactly as shown under an answer. Stored with the query so
@@ -169,6 +167,8 @@ export const queries = pgTable(
     orgId: text('org_id').notNull(),
     // Null is reserved for firm-library questions if we save those later.
     matterId: uuid('matter_id').references(() => matters.id, { onDelete: 'cascade' }),
+    // Questions in one conversation share this. The first question's id is used.
+    threadId: uuid('thread_id'),
     userId: text('user_id').notNull(),               // who asked
     question: text('question').notNull(),
     answer: text('answer').notNull().default(''),    // filled in when streaming finishes
@@ -180,5 +180,6 @@ export const queries = pgTable(
   (t) => [
     index('queries_org_id_idx').on(t.orgId),
     index('queries_matter_created_idx').on(t.matterId, t.createdAt),
+    index('queries_thread_idx').on(t.threadId),
   ],
 )

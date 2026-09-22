@@ -1,7 +1,7 @@
 // app/api/matters/[id]/query/route.ts
 import { anthropic } from '@ai-sdk/anthropic'
-import { streamText } from 'ai'
-import { and, eq, inArray, isNull, or, sql } from 'drizzle-orm'
+import { generateText, streamText } from 'ai' // -- from the Vercel AI SDK
+import { and, asc, eq, inArray, isNull, or, sql } from 'drizzle-orm'
 import { VoyageAIClient } from 'voyageai'
 import { db } from '@/lib/db'
 import { documentFiles, queries, type QuerySource } from '@/lib/schema'
@@ -21,8 +21,39 @@ const MIN_SIMILARITY = 0.3 // ignore chunks less relevant than this
        Keep an eye on it, though. Scores depend on the model and how a question is phrased. If a good question ever returns "couldn't find it", lower the floor to 0.25. It's one constant, so it's easy to tune.
  */
 
-const voyage = new VoyageAIClient({ apiKey: process.env.VOYAGE_API_KEY })
+const voyage = new VoyageAIClient({ apiKey: process.env.VOYAGE_API_KEY }) // ← existing
 
+// ----- HELPERS ---------
+const MAX_HISTORY_TURNS = 4 // earlier Q&A pairs sent back as context
+
+// Earlier answers carry their own [1], [2] markers, which mean nothing in a new
+// turn. Strip them so Claude can't mistake an old number for a new source.
+function stripCitations(text: string) {
+  return text.replace(/\s?\[\d+\]/g, '')
+}
+
+// Turn a follow-up ("what about the party wall point?") into a question that
+// makes sense on its own, so the embedding search finds the right passages.
+async function standaloneQuestion(
+  history: { question: string; answer: string }[],
+  question: string,
+) {
+  if (history.length === 0) return question
+  try {
+    // prettier-ignore
+    const { text } = await generateText({
+      model: anthropic('claude-haiku-4-5'),
+      system:
+        'Rewrite the follow-up as a standalone question that can be understood without the conversation. ' +
+        'Keep names, parties, documents and legal terms. Reply with the question only.',
+      prompt: history.map((h) => `Q: ${h.question}\nA: ${stripCitations(h.answer).slice(0, 1500)}`)
+          .join('\n\n') + `\n\nFollow-up: ${question}`,
+    })
+    return text.trim() || question
+  } catch {
+    return question // rewriting is an improvement, not a requirement
+  }
+}
 type Row = {
   content: string
   source: string
@@ -89,6 +120,40 @@ export async function POST(
       )
     }
 
+    // ---- Follow-up? Load the earlier turns of this conversation ----
+    const threadIdInput =
+      typeof body?.threadId === 'string' ? body.threadId : null
+    if (threadIdInput && !isUuid(threadIdInput)) {
+      return Response.json({ error: 'Invalid conversation.' }, { status: 400 })
+    }
+
+    let history: { question: string; answer: string }[] = []
+    if (threadIdInput) {
+      history = await db
+        .select({ question: queries.question, answer: queries.answer })
+        .from(queries)
+        .where(
+          and(
+            eq(queries.orgId, orgId),
+            eq(queries.matterId, matterId), // the conversation must be on THIS case
+            eq(queries.status, 'complete'),
+            // matches follow-ups, and a first question saved before threads existed
+            or(
+              eq(queries.threadId, threadIdInput),
+              eq(queries.id, threadIdInput),
+            ),
+          ),
+        )
+        .orderBy(asc(queries.createdAt))
+      if (history.length === 0) {
+        return Response.json(
+          { error: 'Conversation not found.' },
+          { status: 404 },
+        )
+      }
+      history = history.slice(-MAX_HISTORY_TURNS)
+    }
+
     // ---- Never trust ticked ids from the browser: re-check every one ----
     // Each must be in this firm AND be either a law book (matter_id null)
     // or a document on THIS case. A file from another case fails here.
@@ -112,12 +177,16 @@ export async function POST(
       )
     }
 
-    // ---- 1. Embed the question (same model as ingestion) ----
+    // ---- 1. Embed the question (rewritten to stand alone if it's a follow-up) ----
+    const searchQuestion = await standaloneQuestion(history, question)
     const res = await voyage.embed({
-      input: question,
+      input: searchQuestion,
       model: 'voyage-4',
       inputType: 'query',
     })
+
+    console.log('TEST---->', { question, searchQuestion })
+
     const queryEmbedding = res.data?.[0]?.embedding
     if (!queryEmbedding) {
       return Response.json(
@@ -179,7 +248,8 @@ export async function POST(
         `- Answer using ONLY the context below. If it does not contain the answer, say so. Do not guess or use outside knowledge.\n` +
         `- Keep facts and law distinct: say what the case documents state, then what the law books say, then how the law applies to those facts.\n` +
         `- Treat statements in case documents, especially correspondence from the other side, as claims or allegations, not established facts.\n` +
-        `- Cite every point inline like [1], [2], matching the numbered context.\n\n` +
+        `- Cite every point inline like [1], [2], matching the numbered context.\n` +
+        `- Earlier turns of the conversation are included for context only. Cite only the numbered context below.\n\n` +
         `Context:\n${context}`
       : `You are a legal research assistant. None of the ticked documents contained passages ` +
         `relevant to this question. Tell the user you could not find the answer in the ticked ` +
@@ -198,21 +268,23 @@ export async function POST(
     }))
 
     // ---- 4. Save the question first, so it exists even if streaming fails ----
+    const id = crypto.randomUUID()
+    const threadId = threadIdInput ?? id // a new conversation is named after its first question
     const [saved] = await db
       .insert(queries)
-      .values({ orgId, matterId, userId, question, fileIds, sources })
+      .values({
+        id,
+        threadId,
+        orgId,
+        matterId,
+        userId,
+        question,
+        fileIds,
+        sources,
+      })
       .returning({ id: queries.id })
 
     // ----  Audit: who asked what, on which case ----
-    await logAction({
-      orgId,
-      userId,
-      matterId,
-      action: 'query.ask',
-      targetType: 'query',
-      targetId: saved.id,
-      detail: question.slice(0, 1000),
-    })
 
     // ---- 5. Stream the answer, sources in a header (same pattern as /api/chat) ----
     // ---- 4. Save the question first, so it exists even if streaming fails ----
@@ -233,10 +305,21 @@ export async function POST(
      */
 
     // ---- 5. Stream the answer; store it once it's complete ----
+    /**
+     * prompt: a single string, meaning "the user said this". It's a shortcut for a one-question conversation.
+     * messages: an array of turns, each with a role ('user' or 'assistant') and content. It's for when there's a conversation to include.
+     */
     const stream = streamText({
       model: anthropic('claude-sonnet-5'),
       system,
-      prompt: question,
+      messages: [
+        // <-- was prompt
+        ...history.flatMap((h) => [
+          { role: 'user' as const, content: h.question },
+          { role: 'assistant' as const, content: stripCitations(h.answer) },
+        ]),
+        { role: 'user' as const, content: question },
+      ],
       onFinish: async ({ text }) => {
         // NEW: when the last word has been generated, save the whole answer.
         // Runs on the server after the last token, with the full text.
@@ -267,6 +350,7 @@ export async function POST(
         'Content-Type': 'text/plain; charset=utf-8',
         'X-Sources': encodeURIComponent(JSON.stringify(sources)),
         'X-Query-Id': saved.id,
+        'X-Thread-Id': threadId, // <-- Return the thread ID
       },
     })
   } catch (err) {

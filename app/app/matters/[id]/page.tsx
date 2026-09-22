@@ -66,6 +66,7 @@ export default async function MatterPage({
       db
       .select({
         id: queries.id,
+        threadId: queries.threadId,  
         question: queries.question,
         userId: queries.userId,
         status: queries.status,
@@ -210,16 +211,56 @@ export default async function MatterPage({
                     <span className='rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600'>
                       {member.role}
                     </span>
-                    {isAdmin && (member.role === 'member' || !isLastAdmin) &&
-                      //  prettier-ignore
+
+                    {isAdmin && (member.role === 'member' || !isLastAdmin) && (
                       <form action={changeMemberRole}>
-                        <input type='hidden' name='matterId' value={matter.id} />
-                        <input type='hidden' name='memberId' value={member.id} />
-                        <input type='hidden' name='role' value={member.role === 'admin' ? 'member' : 'admin'} />
-                        <SubmitButton pendingText='Saving…' className='rounded-md px-2 py-1 text-xs text-slate-600 hover:bg-slate-100'>
-                          {member.role === 'admin' ? 'Make member' : 'Make admin'}
+                        <input
+                          type='hidden'
+                          name='matterId'
+                          value={matter.id}
+                        />
+                        <input
+                          type='hidden'
+                          name='memberId'
+                          value={member.id}
+                        />
+                        <input
+                          type='hidden'
+                          name='role'
+                          value={member.role === 'admin' ? 'member' : 'admin'}
+                        />
+                        <SubmitButton
+                          pendingText='Saving…'
+                          className='rounded-md px-2 py-1 text-xs text-slate-600 hover:bg-slate-100'
+                        >
+                          {member.role === 'admin'
+                            ? 'Make member'
+                            : 'Make admin'}
                         </SubmitButton>
-                      </form>}
+                      </form>
+                    )}
+
+                    {/* restored: remove from the case (the last admin can't be removed) */}
+                    {isAdmin && !isLastAdmin && (
+                      <form action={removeMatterMember}>
+                        <input
+                          type='hidden'
+                          name='matterId'
+                          value={matter.id}
+                        />
+                        <input
+                          type='hidden'
+                          name='memberId'
+                          value={member.id}
+                        />
+                        <SubmitButton
+                          pendingText='Removing…'
+                          className='rounded-md px-2 py-1 text-xs text-red-600 hover:bg-red-50'
+                        >
+                          Remove
+                        </SubmitButton>
+                      </form>
+                    )}
                   </div>
                 </li>
               )
@@ -359,7 +400,12 @@ export default async function MatterPage({
             {history.map((h) => (
               <li key={h.id}>
                 <Link href={`/app/matters/${id}/queries/${h.id}`} className='block rounded-xl border border-slate-200 p-3 transition hover:border-slate-300 hover:bg-slate-50'>
-                  <span className='line-clamp-2 text-sm text-slate-900'>{h.question}</span>
+                  <span className='line-clamp-2 text-sm text-slate-900'>
+                    {h.threadId && h.threadId !== h.id && (
+                      <span className='mr-1 text-xs text-slate-400'>Follow-up:</span>
+                    )}
+                    {h.question}
+                  </span>
                   <span className='mt-1 block text-xs text-slate-400'>
                     {byUserId.get(h.userId)?.name ?? 'Former firm member'} ·{' '}
                     {new Date(h.createdAt).toLocaleString()}
