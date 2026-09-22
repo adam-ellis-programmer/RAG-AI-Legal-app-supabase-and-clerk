@@ -6,12 +6,15 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { and, eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
-import { matterMembers } from '@/lib/schema'
+import { clients, matters, matterMembers } from '@/lib/schema'
 import { logAction } from '@/lib/audit'
 import { getMatterAccess, getOrgMembers, isUuid } from '@/lib/matter-access'
 
 const ROLES = ['admin', 'member'] as const
 type Role = (typeof ROLES)[number]
+
+
+// ----- require admin for matters  ----------
 
 // Both walls + the acting user must be an ADMIN on this case.
 async function requireMatterAdmin(matterId: string) {
@@ -33,6 +36,10 @@ async function actorName() {
     null
   )
 }
+
+
+// ----- add matter member ----------
+
 
 export async function addMatterMember(formData: FormData) {
   const matterId = String(formData.get('matterId') || '')
@@ -81,6 +88,9 @@ export async function addMatterMember(formData: FormData) {
 
   revalidatePath(`/app/matters/${matterId}`)
 }
+
+
+// ----- remove member ----------
 
 export async function removeMatterMember(formData: FormData) {
   const matterId = String(formData.get('matterId') || '')
@@ -187,4 +197,37 @@ export async function changeMemberRole(formData: FormData) {
   })
 
   revalidatePath(`/app/matters/${matterId}`)
+}
+
+
+
+// ----- change status ----------
+
+const STATUSES = ['open', 'closed', 'archived'] as const
+type Status = (typeof STATUSES)[number]
+
+export async function setMatterStatus(formData: FormData) {
+  const matterId = String(formData.get('matterId') || '')
+  const statusInput = String(formData.get('status') || '')
+  if (!STATUSES.includes(statusInput as Status)) throw new Error('Invalid status')
+  const status = statusInput as Status
+
+  // Both walls, and only a case admin can open, close or archive.
+  const { userId, orgId, matter } = await requireMatterAdmin(matterId)
+  if (matter.status === status) return
+
+  await db.update(matters).set({ status }).where(eq(matters.id, matter.id))
+
+  await logAction({
+    orgId,
+    userId,
+    matterId,
+    action: 'matter.status_changed',
+    targetType: 'matter',
+    targetId: matterId,
+    detail: `${matter.status} → ${status}`,
+  })
+
+  revalidatePath(`/app/matters/${matterId}`)
+  revalidatePath(`/app/clients/${matter.clientId}`)
 }

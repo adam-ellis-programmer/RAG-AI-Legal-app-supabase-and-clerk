@@ -150,6 +150,14 @@ export async function POST(req: Request) {
       if (!access) {
         return Response.json({ error: 'Case not found.' }, { status: 404 })
       }
+
+      // NEW: no uploads to a closed or archived case.
+      if (access.matter.status !== 'open') {
+        return Response.json(
+          { error: 'This case is closed. Reopen it to add documents.' },
+          { status: 409 },
+        )
+      }
     }
 
     // Resolve the raw text from either a PDF upload or a pasted-text field.

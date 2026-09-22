@@ -16,6 +16,7 @@ import {
   addMatterMember,
   removeMatterMember,
   changeMemberRole,
+  setMatterStatus,
 } from './actions'
 import { SubmitButton } from '@/components/SubmitButton'
 
@@ -37,7 +38,9 @@ export default async function MatterPage({
   const access = await getMatterAccess(id)
   if (!access) notFound()
   const { userId, orgId, matter, membership } = access
+
   const isAdmin = membership.role === 'admin'
+  const isOpen = matter.status === 'open'
 
   // prettier-ignore
   const [[client], team, orgMembers, caseDocs, lawBooks, history] = await Promise.all([
@@ -133,16 +136,45 @@ export default async function MatterPage({
         >
           &larr; {client?.name ?? 'Client'}
         </Link>
-        <div className='mt-2 flex items-center gap-3 '>
+
+        <div className='mt-2 flex flex-wrap items-center gap-3'>
           <h1 className='font-serif text-2xl text-slate-900'>{matter.title}</h1>
-          <span className='rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600'>
+          {/* prettier-ignore */}
+          <span className={`rounded-full px-2 py-0.5 text-xs ${isOpen ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
             {matter.status}
           </span>
+
+          {isAdmin &&
+            // prettier-ignore
+            <div className='ml-auto flex gap-1'>
+              {(isOpen
+                ? [['closed', 'Close case'], ['archived', 'Archive']]
+                : matter.status === 'closed'
+                  ? [['open', 'Reopen'], ['archived', 'Archive']]
+                  : [['open', 'Reopen']]
+              ).map(([status, label]) => (
+                <form key={status} action={setMatterStatus}>
+                  <input type='hidden' name='matterId' value={matter.id} />
+                  <input type='hidden' name='status' value={status} />
+                  <SubmitButton pendingText='Saving…' className='rounded-md border border-slate-300 px-2.5 py-1 text-xs text-slate-700 hover:bg-slate-50'>
+                    {label}
+                  </SubmitButton>
+                </form>
+              ))}
+            </div>}
         </div>
+
         {matter.reference && (
           <p className='mt-1 text-sm text-slate-400'>{matter.reference}</p>
         )}
       </div>
+      {!isOpen &&
+        // prettier-ignore
+        <p className='mb-8 rounded-lg bg-slate-50 p-3 text-sm text-slate-600 ring-1 ring-slate-200'>
+          This case is {matter.status}. Its documents and research history stay readable, but
+          uploads and new questions are switched off.
+          {isAdmin ? ' Reopen it to continue working.' : ' A case admin can reopen it.'}
+        </p>}
       {/* Case team */}
       <div className=''>
         <section className='mb-8'>
@@ -247,7 +279,7 @@ export default async function MatterPage({
                 ({caseDocs.length})
               </span>
             </h2>
-            <CaseUpload matterId={matter.id} />
+            {isOpen && <CaseUpload matterId={matter.id} />}
           </div>
 
           {caseDocs.length === 0 ? (
@@ -260,11 +292,20 @@ export default async function MatterPage({
             </div>
           ) : (
             <ul className='space-y-2'>
-              {caseDocs.map((doc) =>
+              {caseDocs.map((doc) => (
                 // prettier-ignore (*** UTH ***)
-                <li key={doc.id} className='flex items-center gap-2 rounded-xl border border-slate-200 transition hover:border-slate-300'>
-                  <Link href={`/app/documents/${doc.id}`} prefetch={false} className='flex min-w-0 flex-1 items-center justify-between gap-3 rounded-xl p-4 hover:bg-slate-50'>
-                    <span className='truncate font-medium text-slate-900'>{doc.source}</span>
+                <li
+                  key={doc.id}
+                  className='flex items-center gap-2 rounded-xl border border-slate-200 transition hover:border-slate-300'
+                >
+                  <Link
+                    href={`/app/documents/${doc.id}`}
+                    prefetch={false}
+                    className='flex min-w-0 flex-1 items-center justify-between gap-3 rounded-xl p-4 hover:bg-slate-50'
+                  >
+                    <span className='truncate font-medium text-slate-900'>
+                      {doc.source}
+                    </span>
                     <span className='shrink-0 text-xs text-slate-400'>
                       {byUserId.get(doc.uploadedBy ?? '')?.name ?? 'Unknown'} ·{' '}
                       {new Date(doc.createdAt).toLocaleDateString()}
@@ -273,29 +314,35 @@ export default async function MatterPage({
                   {isAdmin && (
                     <form action={deleteDocument} className='pr-3'>
                       <input type='hidden' name='fileId' value={doc.id} />
-                      <ConfirmSubmitButton message={`Delete "${doc.source}" from this case? Its passages will no longer be searchable. This can't be undone.`} pendingText='Deleting…' className='rounded-md px-2 py-1 text-xs text-red-600 hover:bg-red-50'>
+                      <ConfirmSubmitButton
+                        message={`Delete "${doc.source}" from this case? Its passages will no longer be searchable. This can't be undone.`}
+                        pendingText='Deleting…'
+                        className='rounded-md px-2 py-1 text-xs text-red-600 hover:bg-red-50'
+                      >
                         Delete
                       </ConfirmSubmitButton>
                     </form>
                   )}
-                </li>,
-              )}
+                </li>
+              ))}
             </ul>
           )}
         </section>
         {/* Ask about this case — tick case files + law books */}
         {/* prettier-ignore */}
         {/* Ask about this case — tick case files + law books */}
-        <section className='mt-8'>
-          <h2 className='mb-3 text-sm font-semibold text-slate-700'>
-            Ask about this case
-          </h2>
-          <CaseQuery
-            matterId={matter.id}
-            caseDocs={caseDocs.map((d) => ({ id: d.id, source: d.source }))}
-            lawBooks={lawBooks}
-          />
-        </section>
+        {isOpen && (
+          <section className='mt-8'>
+            <h2 className='mb-3 text-sm font-semibold text-slate-700'>
+              Ask about this case
+            </h2>
+            <CaseQuery
+              matterId={matter.id}
+              caseDocs={caseDocs.map((d) => ({ id: d.id, source: d.source }))}
+              lawBooks={lawBooks}
+            />
+          </section>
+        )}
         {/* Research history — saved questions and answers for the whole team */}
         {/* prettier-ignore */}
         <section className='mt-8'>

@@ -9,10 +9,14 @@ import { createMatter } from './actions'
 import { SubmitButton } from '@/components/SubmitButton'
 export default async function ClientDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ archived?: string }>
 }) {
   const { id } = await params
+  const showArchived = (await searchParams).archived === '1'
+
   const { userId, orgId } = await auth()
   if (!userId || !orgId) notFound()
 
@@ -42,6 +46,11 @@ export default async function ClientDetailPage({
     )
     .where(and(eq(matters.clientId, id), eq(matters.orgId, orgId)))
     .orderBy(desc(matters.createdAt))
+
+  // ----- Filter after the cases query -----------
+  const archivedCount = cases.filter((c) => c.status === 'archived').length
+  // prettier-ignore
+  const visibleCases = showArchived ? cases : cases.filter((c) => c.status !== 'archived')
 
   return (
     <main className='mx-auto max-w-3xl px-6 py-10'>
@@ -86,7 +95,11 @@ export default async function ClientDetailPage({
 
       {cases.length === 0 ? (
         <div className='rounded-xl border border-dashed border-slate-300 p-10 text-center'>
-          <p className='text-slate-500'>No cases yet for {client.name}.</p>
+          <p className='text-slate-500'>
+            {archivedCount > 0
+              ? `No open or closed cases for ${client.name}.`
+              : `No cases yet for ${client.name}.`}
+          </p>
         </div>
       ) : (
         <ul className='space-y-2'>
@@ -112,6 +125,14 @@ export default async function ClientDetailPage({
           ))}
         </ul>
       )}
+
+      {archivedCount > 0 &&
+        // prettier-ignore
+        <p className='mt-4 text-xs text-slate-500'>
+          <Link href={showArchived ? `/app/clients/${id}` : `/app/clients/${id}?archived=1`} className='underline'>
+            {showArchived ? 'Hide archived cases' : `Show ${archivedCount} archived case${archivedCount === 1 ? '' : 's'}`}
+          </Link>
+        </p>}
     </main>
   )
 }

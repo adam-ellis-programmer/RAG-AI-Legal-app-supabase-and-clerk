@@ -19,7 +19,7 @@ export const ACTIVITY_FILTERS = {
   all: null,
    documents: ['document.uploaded', 'document.view', 'document.deleted'],
   questions: ['query.ask'],
-  team: ['matter.created', 'member.added', 'member.removed', 'member.role_changed'],
+  team: ['matter.created', 'member.added', 'member.removed', 'member.role_changed', 'matter.status_changed'],
 } as const
 
 export type ActivityFilter = keyof typeof ACTIVITY_FILTERS
@@ -43,11 +43,13 @@ function describe(e: ActivityEntry, matterId: string) {
       case 'member.removed':
       return { verb: 'removed from the team:', label: e.detail, href: null }  
     case 'member.role_changed':
-      return { verb: 'changed a role:', label: e.detail, href: null }
+      return { verb: 'changed a role:', label: e.detail, href: null }   
+    case 'matter.status_changed':
+      return { verb: 'changed the case status:', label: e.detail, href: null }
     case 'document.uploaded':
       return { verb: 'uploaded', label: e.detail, href: docHref }
     case 'document.view':
-      return { verb: 'opened', label: e.detail, href: docHref }   // ← existing
+      return { verb: 'opened', label: e.detail, href: docHref }   
     case 'document.deleted':
       return { verb: 'deleted', label: e.detail, href: null }
     case 'query.ask':
@@ -113,7 +115,7 @@ export function CaseActivity({
                   {label &&
                     (href ? (
                       <Link href={href} prefetch={false} className='text-slate-900 underline decoration-slate-300 underline-offset-2 hover:decoration-slate-600'>
-                        {label}
+                        {label} --
                       </Link>
                     ) : (
                       <span className='text-slate-900'>{label}</span>

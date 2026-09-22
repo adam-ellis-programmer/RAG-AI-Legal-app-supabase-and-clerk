@@ -46,7 +46,16 @@ export async function POST(
     if (!access) {
       return Response.json({ error: 'Case not found.' }, { status: 404 })
     }
+
     const { userId, orgId, matter } = access
+
+    // ** safe gurad ---  A closed or archived case is read-only: no new research.
+    if (matter.status !== 'open') {
+      return Response.json(
+        { error: 'This case is closed. Reopen it to ask new questions.' },
+        { status: 409 },
+      )
+    }
 
     // ---- Validate the request ----
     const body = await req.json().catch(() => null)
@@ -219,7 +228,7 @@ export async function POST(
     })
 
     /**
-     * How the saving works: 
+     * How the saving works:
      * the row is inserted before streaming with status = 'streaming' and an empty answer. When Claude finishes, onFinish receives the whole text and fills it in. So a crash mid-answer leaves an honest record ("streaming" or "error"), not a missing one. The query ID also goes back in a header, so the page can link to it straight away.
      */
 
