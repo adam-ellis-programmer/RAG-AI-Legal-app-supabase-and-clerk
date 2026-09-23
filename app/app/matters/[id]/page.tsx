@@ -126,7 +126,7 @@ export default async function MatterPage({
   const candidates = orgMembers.filter(
     (m) => !team.some((t) => t.userId === m.userId),
   )
-  console.log(orgMembers)
+
 
   return (
     <main className='mx-auto max-w-3xl px-6 py-10'>
@@ -399,7 +399,7 @@ export default async function MatterPage({
           <ul className='space-y-2'>
             {history.map((h) => (
               <li key={h.id}>
-                <Link href={`/app/matters/${id}/queries/${h.id}`} className='block rounded-xl border border-slate-200 p-3 transition hover:border-slate-300 hover:bg-slate-50'>
+                <Link href={`/app/matters/${id}/queries/${h.id}#turn-${h.id}`} className='block rounded-xl border border-slate-200 p-3 transition hover:border-slate-300 hover:bg-slate-50'>
                   <span className='line-clamp-2 text-sm text-slate-900'>
                     {h.threadId && h.threadId !== h.id && (
                       <span className='mr-1 text-xs text-slate-400'>Follow-up:</span>

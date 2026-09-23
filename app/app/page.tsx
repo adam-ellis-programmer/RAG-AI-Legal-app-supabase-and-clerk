@@ -102,12 +102,12 @@ export default function Home() {
       // Pull the source list out of the response header.
       let sources: Source[] = []
       const raw = res.headers.get('X-Sources')
-      // console.log('raw: ', raw)
+
 
       if (raw) {
         try {
           sources = JSON.parse(decodeURIComponent(raw))
-          // console.log('sources: ', sources)
+
         } catch {
           /* ignore malformed header */
         }
@@ -132,7 +132,7 @@ export default function Home() {
         setMessages((prev) => {
           const u = [...prev]
           const last = u[u.length - 1]
-          // console.log('last', last)
+
 
           //  * So the line is doing: "replace the last message slot with a fresh copy of that message, identical except content now has the new chunk appended." You override the slot (yes), but with a new object that preserves the other fields and gives React something new to see.
 

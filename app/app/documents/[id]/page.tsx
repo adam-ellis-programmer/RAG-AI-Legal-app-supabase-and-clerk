@@ -137,7 +137,7 @@ export default async function DocumentViewPage({
   // ***** *****
 
   // Audit: log when the document is OPENED, not on every page turn or search.
-  // console.log(sp)
+
 
   // A citation link carries ?page= and ?from=cite, so treat it as an opening too.
   const arrivedFresh = (!sp.page && !sp.q) || sp.from === 'cite'

@@ -191,13 +191,13 @@ export async function POST(req: Request) {
       // open the document
       const pdf = await getDocumentProxy(new Uint8Array(buffer)) // PARSED PDF (RETURNED)
 
-      //   console.log('PDF: ', pdf)
+
 
       // Pull the readable text out of the parsed PDF; mergePages joins all pages
       // into one string. Destructure just `text` from the returned object.
       // read the document
       const { text } = await extractText(pdf, { mergePages: true })
-      //   console.log('text', text)
+
 
       //   pdf.destroy(). ???????
 
@@ -223,7 +223,7 @@ export async function POST(req: Request) {
     // Clean once; store and chunk the SAME string so offsets line up.
     const cleaned = cleanText(rawText)
     const chunks = chunkText(cleaned)
-    // console.log('the chunks: ', chunks)
+
 
     if (chunks.length === 0) {
       return Response.json(
@@ -233,7 +233,7 @@ export async function POST(req: Request) {
     }
 
     const embeddings = await embedChunks(chunks)
-    // console.log('embeddings: ', embeddings)
+
 
     if (embeddings.length !== chunks.length) {
       return Response.json(

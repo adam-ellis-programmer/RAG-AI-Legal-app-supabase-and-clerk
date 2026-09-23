@@ -62,11 +62,11 @@ export async function POST(req: Request) {
       inputType: 'query',
     })
 
-    console.log('res.data', res.data)
-    console.log('------------')
+
+
 
     const queryEmbedding = res.data?.[0]?.embedding
-    console.log('query embedding: ', queryEmbedding)
+
 
     if (!queryEmbedding) {
       return Response.json(
@@ -79,7 +79,7 @@ export async function POST(req: Request) {
     //    closest first, and take the top K. (1 - distance) = a 0..1 similarity score.
     const vectorLiteral = `[${queryEmbedding.join(',')}]`
 
-    console.log('vector literal: ', vectorLiteral)
+
 
     /**
      * ~~~~~~~~~~~~~~~~~~~~
@@ -136,7 +136,7 @@ export async function POST(req: Request) {
       limit ${TOP_K}
     `)
 
-    console.log('main result: ', result)
+
 
     const rows = result.rows as Array<{
       content: string
@@ -147,15 +147,14 @@ export async function POST(req: Request) {
       similarity: number
     }>
 
-    // console.log('rows: ', rows)
-    // console.log('--------------')
+
 
     // 3. Build a numbered context block so Claude can cite its sources.
     const context = rows
       .map((r, i) => `[${i + 1}] (${r.source})\n${r.content}`)
       .join('\n\n')
 
-    // console.log('context: ', context)
+
 
     const system = rows.length
       ? `You are a helpful assistant answering questions about legal documents. ` +
@@ -167,7 +166,7 @@ export async function POST(req: Request) {
         `for this question. Tell the user you don't have information on that topic ` +
         `rather than guessing.`
 
-    // console.log('system: ', system)
+
 
     // Build a compact source list for the UI. Order matches the [1], [2] labels.
     const sources = rows.map((r, i) => ({
@@ -188,7 +187,7 @@ export async function POST(req: Request) {
       prompt: question,
     })
 
-    // console.log('stream: ', stream)
+
 
     // Wrap the raw text stream in our own Response so we can add the header
     // without the deprecated toTextStreamResponse(init) call.

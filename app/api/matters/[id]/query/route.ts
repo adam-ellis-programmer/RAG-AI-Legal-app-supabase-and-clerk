@@ -185,7 +185,7 @@ export async function POST(
       inputType: 'query',
     })
 
-    console.log('TEST---->', { question, searchQuestion })
+
 
     const queryEmbedding = res.data?.[0]?.embedding
     if (!queryEmbedding) {

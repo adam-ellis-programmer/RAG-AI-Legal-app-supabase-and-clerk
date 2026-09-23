@@ -8,7 +8,12 @@ import { AnswerMarkdown, SourceList } from '@/components/AnswerView'
 import type { QuerySource } from '@/lib/schema'
 
 type Doc = { id: string; source: string }
-type Turn = { question: string; answer: string; sources: QuerySource[]; queryId: string | null }
+type Turn = {
+  question: string
+  answer: string
+  sources: QuerySource[]
+  queryId: string | null
+}
 
 const MAX_FILES = 20
 
@@ -70,7 +75,10 @@ export function CaseQuery({
     setPending(true)
     setError(null)
     setQuestion('')
-    setTurns((prev) => [...prev, { question: q, answer: '', sources: [], queryId: null }])
+    setTurns((prev) => [
+      ...prev,
+      { question: q, answer: '', sources: [], queryId: null },
+    ])
 
     try {
       const res = await fetch(`/api/matters/${matterId}/query`, {
@@ -115,14 +123,28 @@ export function CaseQuery({
   const canAsk = !pending && question.trim() && selected.size > 0 && !tooMany
   const inConversation = turns.length > 0
 
-  function Group({ title, docs, empty }: { title: string; docs: Doc[]; empty: string }) {
+  function Group({
+    title,
+    docs,
+    empty,
+  }: {
+    title: string
+    docs: Doc[]
+    empty: string
+  }) {
     const allOn = docs.length > 0 && docs.every((d) => selected.has(d.id))
     return (
       <div>
         <div className='mb-2 flex items-center justify-between'>
-          <h3 className='text-xs font-semibold uppercase tracking-wide text-slate-500'>{title}</h3>
+          <h3 className='text-xs font-semibold uppercase tracking-wide text-slate-500'>
+            {title}
+          </h3>
           {docs.length > 0 && (
-            <button type='button' onClick={() => setGroup(docs, !allOn)} className='text-xs text-slate-500 hover:text-slate-900'>
+            <button
+              type='button'
+              onClick={() => setGroup(docs, !allOn)}
+              className='text-xs text-slate-500 hover:text-slate-900'
+            >
               {allOn ? 'Clear' : 'Select all'}
             </button>
           )}
@@ -134,7 +156,12 @@ export function CaseQuery({
             {docs.map((d) => (
               <li key={d.id}>
                 <label className='flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-sm text-slate-700 hover:bg-slate-50'>
-                  <input type='checkbox' checked={selected.has(d.id)} onChange={() => toggle(d.id)} className='h-4 w-4 accent-slate-900' />
+                  <input
+                    type='checkbox'
+                    checked={selected.has(d.id)}
+                    onChange={() => toggle(d.id)}
+                    className='h-4 w-4 accent-slate-900'
+                  />
                   <span className='truncate'>{d.source}</span>
                 </label>
               </li>
@@ -148,8 +175,16 @@ export function CaseQuery({
   return (
     <div className='space-y-4 rounded-xl border border-slate-200 p-4'>
       <div className='grid gap-4 sm:grid-cols-2'>
-        <Group title='Case documents' docs={caseDocs} empty='No documents on this case yet.' />
-        <Group title='Law books' docs={lawBooks} empty='No firm law books uploaded yet.' />
+        <Group
+          title='Case documents'
+          docs={caseDocs}
+          empty='No documents on this case yet.'
+        />
+        <Group
+          title='Law books'
+          docs={lawBooks}
+          empty='No firm law books uploaded yet.'
+        />
       </div>
 
       {/* The conversation so far */}
@@ -159,19 +194,28 @@ export function CaseQuery({
         return (
           <div key={i} className='space-y-3 border-t border-slate-200 pt-4'>
             <p className='text-sm font-medium text-slate-900'>
-              {i > 0 && <span className='mr-1 text-xs font-normal text-slate-400'>Follow-up:</span>}
+              {i > 0 && (
+                <span className='mr-1 text-xs font-normal text-slate-400'>
+                  Follow-up:
+                </span>
+              )}
               {t.question}
             </p>
             {t.answer ? (
               <AnswerMarkdown text={t.answer} anchor={anchor} />
             ) : (
-              <p className='text-sm text-slate-500'>Searching the ticked documents…</p>
+              <p className='text-sm text-slate-500'>
+                Searching the ticked documents…
+              </p>
             )}
             <SourceList sources={t.sources} anchor={anchor} />
             {t.queryId && !answering && (
               <p className='text-xs text-slate-500'>
                 Saved to research history.{' '}
-                <Link href={`/app/matters/${matterId}/queries/${t.queryId}`} className='underline'>
+                <Link
+                  href={`/app/matters/${matterId}/queries/${t.queryId}#turn-${t.queryId}`}
+                  className='underline'
+                >
                   Open saved answer
                 </Link>
               </p>
@@ -186,20 +230,35 @@ export function CaseQuery({
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           rows={3}
-          placeholder={inConversation ? 'Ask a follow-up about this answer…' : 'e.g. Based on the handbook, how strong is Mr Johnson’s adverse possession argument?'}
+          placeholder={
+            inConversation
+              ? 'Ask a follow-up about this answer…'
+              : 'e.g. Based on the handbook, how strong is Mr Johnson’s adverse possession argument?'
+          }
           className='w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400'
         />
         <div className='mt-2 flex items-center justify-between gap-3'>
-          <span className={`text-xs ${tooMany ? 'text-red-600' : 'text-slate-400'}`}>
+          <span
+            className={`text-xs ${tooMany ? 'text-red-600' : 'text-slate-400'}`}
+          >
             {selected.size} selected{tooMany ? ` (max ${MAX_FILES})` : ''}
           </span>
           <div className='flex gap-2'>
             {inConversation && !pending && (
-              <button type='button' onClick={newConversation} className='rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50'>
+              <button
+                type='button'
+                onClick={newConversation}
+                className='rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50'
+              >
                 New question
               </button>
             )}
-            <button type='button' onClick={ask} disabled={!canAsk} className='rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60'>
+            <button
+              type='button'
+              onClick={ask}
+              disabled={!canAsk}
+              className='rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60'
+            >
               {pending ? 'Thinking…' : inConversation ? 'Ask follow-up' : 'Ask'}
             </button>
           </div>

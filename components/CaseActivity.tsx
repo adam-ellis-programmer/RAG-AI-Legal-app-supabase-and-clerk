@@ -56,7 +56,7 @@ function describe(e: ActivityEntry, matterId: string) {
       return {
         verb: 'asked',
         label: e.detail ? `“${e.detail}”` : 'a question',
-        href: e.targetType === 'query' && e.targetId ? `/app/matters/${matterId}/queries/${e.targetId}` : null,
+        href: e.targetType === 'query' && e.targetId ? `/app/matters/${matterId}/queries/${e.targetId}#turn-${e.targetId}` : null,
       }
     default:
       return { verb: e.action, label: e.detail, href: null }
@@ -115,11 +115,12 @@ export function CaseActivity({
                   {label &&
                     (href ? (
                       <Link href={href} prefetch={false} className='text-slate-900 underline decoration-slate-300 underline-offset-2 hover:decoration-slate-600'>
-                        {label} --
+                        {label}
                       </Link>
                     ) : (
                       <span className='text-slate-900'>{label}</span>
                     ))}
+
                 </span>
                 <time dateTime={new Date(e.createdAt).toISOString()} className='shrink-0 text-xs text-slate-400'>
                   {when(e.createdAt)}
