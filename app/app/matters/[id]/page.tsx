@@ -22,6 +22,7 @@ import { SubmitButton } from '@/components/SubmitButton'
 
 import { ConfirmSubmitButton } from '@/components/ConfirmSubmitButton'
 import { deleteDocument } from '@/app/app/documents/actions'
+import { isDemoOrg } from '@/lib/demo'
 
 // The page now reads a search param for the filter (changed function signature)
 export default async function MatterPage({
@@ -41,6 +42,9 @@ export default async function MatterPage({
 
   const isAdmin = membership.role === 'admin'
   const isOpen = matter.status === 'open'
+
+  const isDemo = isDemoOrg(orgId)
+  const canEdit = isAdmin && !isDemo
 
   // prettier-ignore
   const [[client], team, orgMembers, caseDocs, lawBooks, history] = await Promise.all([
@@ -126,7 +130,6 @@ export default async function MatterPage({
   const candidates = orgMembers.filter(
     (m) => !team.some((t) => t.userId === m.userId),
   )
-
 
   return (
     <main className='mx-auto max-w-3xl px-6 py-10'>
@@ -320,7 +323,7 @@ export default async function MatterPage({
                 ({caseDocs.length})
               </span>
             </h2>
-            {isOpen && <CaseUpload matterId={matter.id} />}
+            {isOpen && !isDemo && <CaseUpload matterId={matter.id} />}
           </div>
 
           {caseDocs.length === 0 ? (

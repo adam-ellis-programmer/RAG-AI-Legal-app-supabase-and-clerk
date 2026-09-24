@@ -8,6 +8,7 @@ import { documents, documentFiles } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { getMatterAccess } from '@/lib/matter-access'
 import { logAction } from '@/lib/audit'
+import { isDemoOrg } from '@/lib/demo'
 
 // unpdf needs Node APIs — it will not run on the Edge runtime.
 export const runtime = 'nodejs'
@@ -124,6 +125,14 @@ async function embedChunks(chunks: Chunk[]): Promise<number[][]> {
 export async function POST(req: Request) {
   try {
     const { userId, orgId } = await auth()
+
+    if (isDemoOrg(orgId)) {
+      return Response.json(
+        { error: 'This is a read-only demo — uploads are disabled.' },
+        { status: 403 },
+      )
+    }
+
     // prettier-ignore
     if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
     // prettier-ignore
@@ -191,13 +200,10 @@ export async function POST(req: Request) {
       // open the document
       const pdf = await getDocumentProxy(new Uint8Array(buffer)) // PARSED PDF (RETURNED)
 
-
-
       // Pull the readable text out of the parsed PDF; mergePages joins all pages
       // into one string. Destructure just `text` from the returned object.
       // read the document
       const { text } = await extractText(pdf, { mergePages: true })
-
 
       //   pdf.destroy(). ???????
 
@@ -224,7 +230,6 @@ export async function POST(req: Request) {
     const cleaned = cleanText(rawText)
     const chunks = chunkText(cleaned)
 
-
     if (chunks.length === 0) {
       return Response.json(
         { error: 'No text could be extracted.' },
@@ -233,7 +238,6 @@ export async function POST(req: Request) {
     }
 
     const embeddings = await embedChunks(chunks)
-
 
     if (embeddings.length !== chunks.length) {
       return Response.json(
