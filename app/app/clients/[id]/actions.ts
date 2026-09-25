@@ -7,6 +7,7 @@ import { and, eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { clients, matters, matterMembers } from '@/lib/schema'
 import { logAction } from '@/lib/audit'
+import { assertNotDemo } from '@/lib/demo'
 
 export async function createMatter(formData: FormData) {
   const { userId, orgId } = await auth()
@@ -16,7 +17,9 @@ export async function createMatter(formData: FormData) {
   const title = String(formData.get('title') || '').trim()
   const reference = String(formData.get('reference') || '').trim() || null
   if (!clientId || !title) return
-
+  
+  // ----- Assert Demo ---------
+  await assertNotDemo()
   // Security: verify the client actually belongs to THIS firm before using the
   // clientId from the form (never trust a hidden field blindly).
   const [client] = await db

@@ -6,6 +6,8 @@ import { db } from '@/lib/db'
 import { clients } from '@/lib/schema'
 import { createClient } from './actions'
 import { SubmitButton } from '@/components/SubmitButton'
+import { isDemoOrg } from '@/lib/demo'
+
 export default async function ClientsPage() {
   const { orgId } = await auth()
 
@@ -19,6 +21,9 @@ export default async function ClientsPage() {
     )
   }
 
+  const isDemo = isDemoOrg(orgId)
+  console.log(isDemo)
+
   // Tenant wall (layer 1): only this firm's clients.
   const rows = await db
     .select()
@@ -31,26 +36,36 @@ export default async function ClientsPage() {
       <div className='mb-8'>
         <h1 className='font-serif text-2xl text-slate-900'>Clients</h1>
         <p className='mt-1 text-sm text-slate-500'>
-          Onboard a client, then open them to create a case.
+          {isDemo
+            ? 'The demo firm’s clients. Open one to see its cases.'
+            : 'Onboard a client, then open them to create a case.'}
         </p>
       </div>
 
       {/* Onboard-a-client form. `action={createClient}` submits straight to the
           server action — no fetch, no API route, no client JS. */}
-      <form action={createClient} className='mb-8 flex gap-2'>
-        <input
-          name='name'
-          required
-          placeholder='Client name (e.g. Mr Johnson)'
-          className='flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400'
-        />
-        <SubmitButton
-          pendingText='Adding…'
-          className='rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800'
-        >
-          Add client
-        </SubmitButton>
-      </form>
+      {!isDemo && (
+        <form action={createClient} className='mb-8 flex gap-2'>
+          <input
+            name='name'
+            required
+            placeholder='Client name (e.g. Mr Johnson)'
+            className='flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400'
+          />
+          <SubmitButton
+            pendingText='Adding…'
+            className='rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800'
+          >
+            Add client
+          </SubmitButton>
+        </form>
+      )}
+
+      {isDemo && (
+        <p className='text-center mb-5 bg-gray-100 p-2 capitalize'>
+          Create form hidden for demo users
+        </p>
+      )}
 
       {rows.length === 0 ? (
         <div className='rounded-xl border border-dashed border-slate-300 p-10 text-center'>

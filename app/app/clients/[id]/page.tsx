@@ -7,6 +7,7 @@ import { db } from '@/lib/db'
 import { clients, matters, matterMembers } from '@/lib/schema'
 import { createMatter } from './actions'
 import { SubmitButton } from '@/components/SubmitButton'
+import { isDemoOrg } from '@/lib/demo'
 export default async function ClientDetailPage({
   params,
   searchParams,
@@ -19,7 +20,7 @@ export default async function ClientDetailPage({
 
   const { userId, orgId } = await auth()
   if (!userId || !orgId) notFound()
-
+  const isDemo = isDemoOrg(orgId)
   // Layer 1 (firm wall): the client must belong to this org.
   const [client] = await db
     .select()
@@ -69,31 +70,34 @@ export default async function ClientDetailPage({
 
       {/* Create-a-case form. The hidden clientId tells the action which client
           this case belongs to (validated server-side in the action). */}
-      <form
-        action={createMatter}
-        className='mb-8 space-y-2 rounded-xl border border-slate-200 p-4'
-      >
-        <input type='hidden' name='clientId' value={client.id} />
-        <input
-          name='title'
-          required
-          placeholder='Case title (e.g. Johnson vs Smith – boundary dispute 2026)'
-          className='w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400'
-        />
-        <input
-          name='reference'
-          placeholder='Reference (optional, e.g. MAT-2026-001)'
-          className='w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400'
-        />
-        <SubmitButton
-          pendingText='Creating…'
-          className='rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800'
-        >
-          Create case
-        </SubmitButton>
-      </form>
 
-      {cases.length === 0 ? (
+      {!isDemo && (
+        <form
+          action={createMatter}
+          className='mb-8 space-y-2 rounded-xl border border-slate-200 p-4'
+        >
+          <input type='hidden' name='clientId' value={client.id} />
+          <input
+            name='title'
+            required
+            placeholder='Case title (e.g. Johnson vs Smith – boundary dispute 2026)'
+            className='w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400'
+          />
+          <input
+            name='reference'
+            placeholder='Reference (optional, e.g. MAT-2026-001)'
+            className='w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400'
+          />
+          <SubmitButton
+            pendingText='Creating…'
+            className='rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800'
+          >
+            Create case
+          </SubmitButton>
+        </form>
+      )}
+
+      {visibleCases.length === 0 ? (
         <div className='rounded-xl border border-dashed border-slate-300 p-10 text-center'>
           <p className='text-slate-500'>
             {archivedCount > 0
@@ -103,7 +107,7 @@ export default async function ClientDetailPage({
         </div>
       ) : (
         <ul className='space-y-2'>
-          {cases.map((m) => (
+          {visibleCases.map((m) => (
             <li key={m.id}>
               <Link
                 href={`/app/matters/${m.id}`}

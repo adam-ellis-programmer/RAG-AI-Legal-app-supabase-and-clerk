@@ -148,7 +148,7 @@ export default async function MatterPage({
             {matter.status}
           </span>
 
-          {isAdmin &&
+          {canEdit &&
             // prettier-ignore
             <div className='ml-auto flex gap-1'>
               {(isOpen

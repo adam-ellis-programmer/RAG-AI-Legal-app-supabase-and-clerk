@@ -6,16 +6,15 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { and, eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
-import { clients, matters, matterMembers } from '@/lib/schema'
+import { matters, matterMembers } from '@/lib/schema'
 import { logAction } from '@/lib/audit'
 import { getMatterAccess, getOrgMembers, isUuid } from '@/lib/matter-access'
+import { assertNotDemo } from '@/lib/demo'
 
 const ROLES = ['admin', 'member'] as const
-type Role = (typeof ROLES)[number]
-
+type Role = (typeof ROLES)[number] // () -> first get the type of ROLES, then index into it. TypeScript
 
 // ----- require admin for matters  ----------
-
 // Both walls + the acting user must be an ADMIN on this case.
 async function requireMatterAdmin(matterId: string) {
   const access = await getMatterAccess(matterId)
@@ -37,9 +36,7 @@ async function actorName() {
   )
 }
 
-
 // ----- add matter member ----------
-
 
 export async function addMatterMember(formData: FormData) {
   const matterId = String(formData.get('matterId') || '')
@@ -47,6 +44,8 @@ export async function addMatterMember(formData: FormData) {
   const roleInput = String(formData.get('role') || 'member')
   if (!matterId || !targetUserId) return
 
+  // ----- Assert Demo ---------
+  await assertNotDemo()
   if (!ROLES.includes(roleInput as Role)) throw new Error('Invalid role')
   const role = roleInput as Role
 
@@ -89,7 +88,6 @@ export async function addMatterMember(formData: FormData) {
   revalidatePath(`/app/matters/${matterId}`)
 }
 
-
 // ----- remove member ----------
 
 export async function removeMatterMember(formData: FormData) {
@@ -97,8 +95,10 @@ export async function removeMatterMember(formData: FormData) {
   const memberId = String(formData.get('memberId') || '')
   if (!matterId || !memberId || !isUuid(memberId)) return
 
-  const { userId, orgId, matter } = await requireMatterAdmin(matterId)
+  // ----- Assert Demo ---------
+  await assertNotDemo()
 
+  const { userId, orgId, matter } = await requireMatterAdmin(matterId)
   // The membership row must belong to THIS case (not just any id from the form).
   const [target] = await db
     .select()
@@ -147,9 +147,7 @@ export async function removeMatterMember(formData: FormData) {
   revalidatePath(`/app/matters/${matterId}`)
 }
 
-
 // ----- change member role ----------
-
 
 export async function changeMemberRole(formData: FormData) {
   const matterId = String(formData.get('matterId') || '')
@@ -159,6 +157,9 @@ export async function changeMemberRole(formData: FormData) {
   if (!ROLES.includes(roleInput as Role)) throw new Error('Invalid role')
   const role = roleInput as Role
 
+  // ----- Assert Demo ---------
+  await assertNotDemo()
+
   // Both walls, and the person making the change must be a case admin.
   const { userId, orgId } = await requireMatterAdmin(matterId)
 
@@ -166,7 +167,9 @@ export async function changeMemberRole(formData: FormData) {
   const [target] = await db
     .select()
     .from(matterMembers)
-    .where(and(eq(matterMembers.id, memberId), eq(matterMembers.matterId, matterId)))
+    .where(
+      and(eq(matterMembers.id, memberId), eq(matterMembers.matterId, matterId)),
+    )
     .limit(1)
   if (!target) throw new Error('Member not found on this case')
   if (target.role === role) return // nothing to change
@@ -176,15 +179,25 @@ export async function changeMemberRole(formData: FormData) {
     const admins = await db
       .select({ id: matterMembers.id })
       .from(matterMembers)
-      .where(and(eq(matterMembers.matterId, matterId), eq(matterMembers.role, 'admin')))
-    if (admins.length <= 1) throw new Error('A case must keep at least one admin')
+      .where(
+        and(
+          eq(matterMembers.matterId, matterId),
+          eq(matterMembers.role, 'admin'),
+        ),
+      )
+    if (admins.length <= 1)
+      throw new Error('A case must keep at least one admin')
   }
 
   // Update in place: no gap in the person's access.
-  await db.update(matterMembers).set({ role }).where(eq(matterMembers.id, target.id))
+  await db
+    .update(matterMembers)
+    .set({ role })
+    .where(eq(matterMembers.id, target.id))
 
   const orgMembers = await getOrgMembers(orgId)
-  const name = orgMembers.find((m) => m.userId === target.userId)?.name ?? target.userId
+  const name =
+    orgMembers.find((m) => m.userId === target.userId)?.name ?? target.userId
 
   await logAction({
     orgId,
@@ -199,8 +212,6 @@ export async function changeMemberRole(formData: FormData) {
   revalidatePath(`/app/matters/${matterId}`)
 }
 
-
-
 // ----- change status ----------
 
 const STATUSES = ['open', 'closed', 'archived'] as const
@@ -209,8 +220,12 @@ type Status = (typeof STATUSES)[number]
 export async function setMatterStatus(formData: FormData) {
   const matterId = String(formData.get('matterId') || '')
   const statusInput = String(formData.get('status') || '')
-  if (!STATUSES.includes(statusInput as Status)) throw new Error('Invalid status')
+  if (!STATUSES.includes(statusInput as Status))
+    throw new Error('Invalid status')
   const status = statusInput as Status
+
+  // ----- Assert Demo ---------
+  await assertNotDemo()
 
   // Both walls, and only a case admin can open, close or archive.
   const { userId, orgId, matter } = await requireMatterAdmin(matterId)

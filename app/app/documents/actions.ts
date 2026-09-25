@@ -8,12 +8,15 @@ import { db } from '@/lib/db'
 import { documentFiles } from '@/lib/schema'
 import { getMatterAccess, isUuid } from '@/lib/matter-access'
 import { logAction } from '@/lib/audit'
+import { assertNotDemo } from '@/lib/demo'
 
 // prettier-ignore
 export async function deleteDocument(formData: FormData) {
   const { userId, orgId, has } = await auth()
   if (!userId || !orgId) throw new Error('Not authorized')
-
+      
+    // ----- Assert Demo ---------
+    await assertNotDemo()
   const fileId = String(formData.get('fileId') || '')
   if (!isUuid(fileId)) return
 
