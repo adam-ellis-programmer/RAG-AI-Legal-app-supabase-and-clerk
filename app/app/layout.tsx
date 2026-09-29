@@ -1,7 +1,9 @@
 // app/app/layout.tsx
 import Link from 'next/link'
 import { auth } from '@clerk/nextjs/server'
-import { OrganizationSwitcher, UserButton } from '@clerk/nextjs'
+
+import { OrganizationSwitcher, SignOutButton, UserButton } from '@clerk/nextjs'
+import { isDemoOrg } from '@/lib/demo'
 
 // once we are on the app page with uploads etc
 // we have a different LAYOUT to all the other
@@ -11,7 +13,8 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode
 }) {
-  await auth.protect()
+  const { orgId } = await auth.protect()
+  const isDemo = isDemoOrg(orgId)
 
   return (
     <div className='flex min-h-screen flex-col'>
@@ -46,8 +49,22 @@ export default async function AppLayout({
             </nav>
           </div>
           <div className='flex items-center gap-4'>
-            <OrganizationSwitcher hidePersonal />
-            <UserButton />
+            {isDemo ? (
+              // Shared demo account: no firm switcher and no account menu.
+              <>
+                <span className='text-sm text-slate-500'>Demo firm</span>
+                <SignOutButton redirectUrl='/'>
+                  <button className='rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-50'>
+                    Leave demo
+                  </button>
+                </SignOutButton>
+              </>
+            ) : (
+              <>
+                <OrganizationSwitcher hidePersonal />
+                <UserButton />
+              </>
+            )}
           </div>
         </div>
       </header>

@@ -177,7 +177,7 @@ export default async function MatterPage({
         <p className='mb-8 rounded-lg bg-slate-50 p-3 text-sm text-slate-600 ring-1 ring-slate-200'>
           This case is {matter.status}. Its documents and research history stay readable, but
           uploads and new questions are switched off.
-          {isAdmin ? ' Reopen it to continue working.' : ' A case admin can reopen it.'}
+          {canEdit ? ' Reopen it to continue working.' : isDemo ? '' : ' A case admin can reopen it.'}
         </p>}
       {/* Case team */}
       <div className=''>
@@ -192,9 +192,10 @@ export default async function MatterPage({
               const person = byUserId.get(member.userId)
               const isLastAdmin = member.role === 'admin' && adminCount <= 1
               return (
+                // ---------- start of list item ---------------
                 <li
                   key={member.id}
-                  className='flex items-center justify-between rounded-md border border-slate-200 px-3 py-2'
+                  className='flex  items-center justify-between rounded-md border border-slate-200 px-3 py-2'
                 >
                   <div>
                     <span className='font-medium text-slate-900'>
@@ -215,7 +216,7 @@ export default async function MatterPage({
                       {member.role}
                     </span>
 
-                    {isAdmin && (member.role === 'member' || !isLastAdmin) && (
+                    {canEdit && (member.role === 'member' || !isLastAdmin) && (
                       <form action={changeMemberRole}>
                         <input
                           type='hidden'
@@ -244,7 +245,7 @@ export default async function MatterPage({
                     )}
 
                     {/* restored: remove from the case (the last admin can't be removed) */}
-                    {isAdmin && !isLastAdmin && (
+                      {canEdit && !isLastAdmin && (
                       <form action={removeMatterMember}>
                         <input
                           type='hidden'
@@ -266,20 +267,22 @@ export default async function MatterPage({
                     )}
                   </div>
                 </li>
+                // ---------- end of list item ----------------
               )
             })}
           </ul>
 
           {/* Add member — admins only */}
-          {isAdmin &&
+            {canEdit &&
             (candidates.length === 0 ? (
               <p className='mt-3 text-xs text-slate-400'>
                 Everyone in the firm is already on this case.
               </p>
             ) : (
+              // --------------------------- add matter member formm -----------------------------
               <form
                 action={addMatterMember}
-                className='mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 p-3'
+                className='mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-rose-200 p-3'
               >
                 <input type='hidden' name='matterId' value={matter.id} />
                 <select
@@ -314,8 +317,8 @@ export default async function MatterPage({
               </form>
             ))}
         </section>
-        {/* Case documents — visible to the case team only */}
-        <section>
+        {/*----------------- Case documents — visible to the case team only  -----------------*/}
+        <section className='border border-green-600'>
           <div className='mb-3 flex items-center justify-between'>
             <h2 className='text-sm font-semibold text-slate-700'>
               Case documents{' '}
@@ -355,7 +358,7 @@ export default async function MatterPage({
                       {new Date(doc.createdAt).toLocaleDateString()}
                     </span>
                   </Link>
-                  {isAdmin && (
+                  {canEdit && (
                     <form action={deleteDocument} className='pr-3'>
                       <input type='hidden' name='fileId' value={doc.id} />
                       <ConfirmSubmitButton
@@ -372,11 +375,10 @@ export default async function MatterPage({
             </ul>
           )}
         </section>
-        {/* Ask about this case — tick case files + law books */}
+        {/*--------------------- Ask about this case — tick case files + law books --------------------*/}
         {/* prettier-ignore */}
-        {/* Ask about this case — tick case files + law books */}
         {isOpen && (
-          <section className='mt-8'>
+          <section className='mt-8 border border-rose-600'>
             <h2 className='mb-3 text-sm font-semibold text-slate-700'>
               Ask about this case
             </h2>
@@ -387,9 +389,9 @@ export default async function MatterPage({
             />
           </section>
         )}
-        {/* Research history — saved questions and answers for the whole team */}
+        {/* -----------------Research history — saved questions and answers for the whole team ----------*/}
         {/* prettier-ignore */}
-        <section className='mt-8'>
+        <section className='mt-8 '>
           <h2 className='mb-3 text-sm font-semibold text-slate-700'>
             Research history{' '}
           <span className='font-normal text-slate-400'>({history.length})</span>
@@ -401,7 +403,8 @@ export default async function MatterPage({
         ) : (
           <ul className='space-y-2'>
             {history.map((h) => (
-              <li key={h.id}>
+              // ------------------------ start of list item -------------------------------------
+              <li key={h.id} >
                 <Link href={`/app/matters/${id}/queries/${h.id}#turn-${h.id}`} className='block rounded-xl border border-slate-200 p-3 transition hover:border-slate-300 hover:bg-slate-50'>
                   <span className='line-clamp-2 text-sm text-slate-900'>
                     {h.threadId && h.threadId !== h.id && (
@@ -416,11 +419,13 @@ export default async function MatterPage({
                   </span>
                 </Link>
               </li>
-            ))}
+            ))} 
           </ul>
         )}
       </section>{' '}
         {/* ← end of Research history, keep */}
+
+        
         {/* Case activity — case admins only */}
         {isAdmin &&
           // prettier-ignore
