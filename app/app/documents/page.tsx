@@ -6,6 +6,7 @@ import { db } from '@/lib/db'
 
 import { ConfirmSubmitButton } from '@/components/ConfirmSubmitButton'
 import { deleteDocument } from './actions'
+import { isDemoOrg } from '@/lib/demo'
 
 export default async function DocumentsPage() {
   const { userId, orgId, has } = await auth()
@@ -21,7 +22,7 @@ export default async function DocumentsPage() {
   }
 
   const isOrgAdmin = has({ role: 'org:admin' })
-
+  const isDemo = isDemoOrg(orgId)
   // One row per uploaded document, scoped to the active org (the tenant wall).
   // `left(full_text, 160)` fetches only a short preview - never the whole book.
   let docs: Array<{
@@ -102,7 +103,8 @@ export default async function DocumentsPage() {
                 </div>
                 <p className='mt-1 line-clamp-2 text-sm text-slate-500'>{doc.preview}&hellip;</p>
               </Link>
-              {(isOrgAdmin || doc.uploaded_by === userId) && (
+                
+                {!isDemo && (isOrgAdmin || doc.uploaded_by === userId) && (
                 <form action={deleteDocument} className='p-3'>
                   <input type='hidden' name='fileId' value={doc.id} />
                   <ConfirmSubmitButton message={`Delete "${doc.source}" from the firm library? Everyone will lose access to it. This can't be undone.`} pendingText='Deleting…' className='rounded-md px-2 py-1 text-xs text-red-600 hover:bg-red-50'>
