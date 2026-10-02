@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed:demo": "tsx --env-file=.env.local scripts/seed-demo/index.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.21",

@@ -183,3 +183,23 @@ export const queries = pgTable(
     index('queries_thread_idx').on(t.threadId),
   ],
 )
+
+
+// ------------------- demo usage ---------------------------------------
+
+
+// Demo question usage: one row per question asked in the demo firm, keyed by a
+// salted hash of the visitor's IP. Used only for rate limiting, never shown.
+export const demoUsage = pgTable(
+  'demo_usage',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ipHash: text('ip_hash').notNull(),
+    route: text('route').notNull(), // 'chat' | 'case-query'
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index('demo_usage_ip_created_idx').on(t.ipHash, t.createdAt),
+    index('demo_usage_created_idx').on(t.createdAt),
+  ],
+)

@@ -111,8 +111,8 @@ export function CaseQuery({
       }
       router.refresh() // pick up the new entry in Research history
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Query failed')
-      setTurns((prev) => prev.slice(0, -1)) // drop the unanswered turn
+      setError(err instanceof Error ? err.message : 'Query failed')  // ← puts it on screen
+      setTurns((prev) => prev.slice(0, -1)) // drop the unanswered turn (removes the unanswered question)
       setQuestion(q) // give the question back so it can be retried
     } finally {
       setPending(false)

@@ -8,6 +8,8 @@ import { documentFiles, queries, type QuerySource } from '@/lib/schema'
 import { getMatterAccess, isUuid } from '@/lib/matter-access'
 import { logAction } from '@/lib/audit'
 import { pageForChar } from '@/lib/pagination'
+import { isDemoOrg } from '@/lib/demo'
+import { claimDemoQuestion } from '@/lib/demo-quota'
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
@@ -177,6 +179,11 @@ export async function POST(
       )
     }
 
+    if (isDemoOrg(orgId)) {
+      const refusal = await claimDemoQuestion(req, 'case-query')
+      if (refusal) return Response.json({ error: refusal }, { status: 429 })
+    } // It goes this late because a question with an invalid document selection shouldn't cost the visitor one of their 10. Add the same two imports.
+
     // ---- 1. Embed the question (rewritten to stand alone if it's a follow-up) ----
     const searchQuestion = await standaloneQuestion(history, question)
     const res = await voyage.embed({
@@ -184,8 +191,6 @@ export async function POST(
       model: 'voyage-4',
       inputType: 'query',
     })
-
-
 
     const queryEmbedding = res.data?.[0]?.embedding
     if (!queryEmbedding) {

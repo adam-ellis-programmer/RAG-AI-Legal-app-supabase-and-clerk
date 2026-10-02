@@ -6,6 +6,10 @@ import { sql } from 'drizzle-orm'
 import { VoyageAIClient } from 'voyageai'
 import { db } from '@/lib/db'
 import { pageForChar } from '@/lib/pagination'
+
+import { isDemoOrg } from '@/lib/demo'
+import { claimDemoQuestion } from '@/lib/demo-quota'
+
 /**
  * quick notes
  * -- chunk_index is a permanent property of the chunk, set at ingestion time & answers "where in the source document did this come from?"
@@ -52,6 +56,12 @@ export async function POST(req: Request) {
 
     if (!question || typeof question !== 'string' || !question.trim()) {
       return Response.json({ error: 'Provide a `question` string.' },{ status: 400 })
+    }
+
+        // Demo firm: per-visitor and daily limits, checked before anything costs money.
+    if (isDemoOrg(orgId)) {
+      const refusal = await claimDemoQuestion(req, 'chat')
+      if (refusal) return Response.json({ error: refusal }, { status: 429 })
     }
 
     // 1. Embed the QUESTION. Note inputType "query" — documents were embedded

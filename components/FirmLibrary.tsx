@@ -96,7 +96,10 @@ export default function FirmLibrary({ readOnly }: { readOnly: boolean }) {
       })
 
       if (!res.ok || !res.body) {
-        throw new Error(await res.text().catch(() => 'Request failed'))
+        const data = await res.json().catch(() => null)
+        throw new Error(
+          data?.error || 'Sorry — something went wrong. Please try again.',
+        )
       }
 
       // Pull the source list out of the response header.
@@ -137,12 +140,13 @@ export default function FirmLibrary({ readOnly }: { readOnly: boolean }) {
           return u
         })
       }
-    } catch {
+    } catch (e) {
       setMessages((prev) => {
         const u = [...prev]
+        // prettier-ignore
         u[u.length - 1] = {
           ...u[u.length - 1],
-          content: 'Sorry — something went wrong. Please try again.',
+          content: e instanceof Error ? e.message : 'Sorry — something went wrong. Please try again.',
         }
         return u
       })
@@ -167,77 +171,79 @@ export default function FirmLibrary({ readOnly }: { readOnly: boolean }) {
 
       {/* ---------------- Ingestion panel ---------------- */}
       {!readOnly && (
-      <section className='rounded-xl border border-zinc-200 bg-white p-4'>
-        <h2 className='mb-1 text-sm font-semibold text-zinc-700'>
-          Add to the firm library
-        </h2>
-        <p className='mb-3 rounded-lg bg-amber-50 p-2 text-xs text-amber-900 ring-1 ring-amber-200'>
-          Anything added here is visible to everyone in the firm. Client files
-          belong on their case, where only the case team can see them.{' '}
-          <Link href='/app/clients' className='font-medium underline'>
-            Go to clients
-          </Link>
-        </p>
+        <section className='rounded-xl border border-zinc-200 bg-white p-4'>
+          <h2 className='mb-1 text-sm font-semibold text-zinc-700'>
+            Add to the firm library
+          </h2>
+          <p className='mb-3 rounded-lg bg-amber-50 p-2 text-xs text-amber-900 ring-1 ring-amber-200'>
+            Anything added here is visible to everyone in the firm. Client files
+            belong on their case, where only the case team can see them.{' '}
+            <Link href='/app/clients' className='font-medium underline'>
+              Go to clients
+            </Link>
+          </p>
 
-        <div className='grid gap-4 md:grid-cols-2'>
-          {/* Paste text */}
-          <div className='flex flex-col gap-2'>
-            <textarea
-              value={pasteText}
-              onChange={(e) => setPasteText(e.target.value)}
-              placeholder='Paste document text here…'
-              rows={5}
-              className='w-full resize-y rounded-lg border border-zinc-300 p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
-            />
-            <input
-              value={pasteSource}
-              onChange={(e) => setPasteSource(e.target.value)}
-              placeholder='Source label (optional)'
-              className='w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
-            />
-            <button
-              onClick={ingestPaste}
-              disabled={ingesting || !pasteText.trim()}
-              className='rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50'
+          <div className='grid gap-4 md:grid-cols-2'>
+            {/* Paste text */}
+            <div className='flex flex-col gap-2'>
+              <textarea
+                value={pasteText}
+                onChange={(e) => setPasteText(e.target.value)}
+                placeholder='Paste document text here…'
+                rows={5}
+                className='w-full resize-y rounded-lg border border-zinc-300 p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+              />
+              <input
+                value={pasteSource}
+                onChange={(e) => setPasteSource(e.target.value)}
+                placeholder='Source label (optional)'
+                className='w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+              />
+              <button
+                onClick={ingestPaste}
+                disabled={ingesting || !pasteText.trim()}
+                className='rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50'
+              >
+                {ingesting ? 'Adding…' : 'Add to library'}
+              </button>
+            </div>
+
+            {/* PDF drop zone */}
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={(e) => {
+                e.preventDefault()
+                setDragActive(true)
+              }}
+              onDragLeave={() => setDragActive(false)}
+              onDrop={(e) => {
+                e.preventDefault()
+                setDragActive(false)
+                ingestFiles(e.dataTransfer.files)
+              }}
+              className={
+                'flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 text-center text-sm transition ' +
+                (dragActive
+                  ? 'border-blue-500 bg-blue-50 text-blue-700'
+                  : 'border-zinc-300 text-zinc-500 hover:border-zinc-400')
+              }
             >
-              {ingesting ? 'Adding…' : 'Add to library'}
-            </button>
+              <p className='font-medium'>Drop a reference PDF here</p>
+              <p className='text-xs'>or click to browse</p>
+              <input
+                ref={fileInputRef}
+                type='file'
+                accept='application/pdf'
+                className='hidden'
+                onChange={(e) => ingestFiles(e.target.files)}
+              />
+            </div>
           </div>
 
-          {/* PDF drop zone */}
-          <div
-            onClick={() => fileInputRef.current?.click()}
-            onDragOver={(e) => {
-              e.preventDefault()
-              setDragActive(true)
-            }}
-            onDragLeave={() => setDragActive(false)}
-            onDrop={(e) => {
-              e.preventDefault()
-              setDragActive(false)
-              ingestFiles(e.dataTransfer.files)
-            }}
-            className={
-              'flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 text-center text-sm transition ' +
-              (dragActive
-                ? 'border-blue-500 bg-blue-50 text-blue-700'
-                : 'border-zinc-300 text-zinc-500 hover:border-zinc-400')
-            }
-          >
-            <p className='font-medium'>Drop a reference PDF here</p>
-            <p className='text-xs'>or click to browse</p>
-            <input
-              ref={fileInputRef}
-              type='file'
-              accept='application/pdf'
-              className='hidden'
-              onChange={(e) => ingestFiles(e.target.files)}
-            />
-          </div>
-        </div>
-
-        {ingestMsg && <p className='mt-3 text-sm text-zinc-600'>{ingestMsg}</p>}
-      </section>
+          {ingestMsg && (
+            <p className='mt-3 text-sm text-zinc-600'>{ingestMsg}</p>
+          )}
+        </section>
       )}
 
       {/* ---------------- Chat panel ---------------- */}
