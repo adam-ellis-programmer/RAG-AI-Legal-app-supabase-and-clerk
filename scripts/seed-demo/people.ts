@@ -6,10 +6,34 @@ import { clerk, ORG_ID } from './config'
 // The visitor goes LAST so the firm already has an admin before
 // the visitor is set to an ordinary member.
 const PEOPLE = [
-  { key: 'eleanor', email: 'eleanor.wakefield@example.com', firstName: 'Eleanor', lastName: 'Wakefield', orgRole: 'org:admin' },
-  { key: 'daniel', email: 'daniel.croft@example.com', firstName: 'Daniel', lastName: 'Croft', orgRole: 'org:member' },
-  { key: 'priya', email: 'priya.shah@example.com', firstName: 'Priya', lastName: 'Shah', orgRole: 'org:member' },
-  { key: 'visitor', email: 'demo-user@demo-user.com', firstName: 'Demo', lastName: 'Visitor', orgRole: 'org:member' },
+  {
+    key: 'eleanor',
+    email: 'eleanor.wakefield@example.com',
+    firstName: 'Eleanor',
+    lastName: 'Wakefield',
+    orgRole: 'org:admin',
+  },
+  {
+    key: 'daniel',
+    email: 'daniel.croft@example.com',
+    firstName: 'Daniel',
+    lastName: 'Croft',
+    orgRole: 'org:member',
+  },
+  {
+    key: 'priya',
+    email: 'priya.shah@example.com',
+    firstName: 'Priya',
+    lastName: 'Shah',
+    orgRole: 'org:member',
+  },
+  {
+    key: 'visitor',
+    email: 'demo-user@demo-user.com',
+    firstName: 'Demo',
+    lastName: 'Visitor',
+    orgRole: 'org:member',
+  },
 ] as const
 
 type PersonKey = (typeof PEOPLE)[number]['key'] // 'eleanor' | 'daniel' | 'priya' | 'visitor'
@@ -39,22 +63,29 @@ async function ensureUser(p: (typeof PEOPLE)[number]) {
 }
 
 export async function seedPeople(): Promise<People> {
-  const { data: memberships } = await clerk.organizations.getOrganizationMembershipList({
-    organizationId: ORG_ID,
-    limit: 100,
-  })
+  // ------ fetched before the loop runs -------------------
+  const { data: memberships } =
+    await clerk.organizations.getOrganizationMembershipList({
+      organizationId: ORG_ID,
+      limit: 100,
+    })
 
   const people = {} as People
+  // ----- LOOP STARTS HERE ------------------------------
   for (const p of PEOPLE) {
     const userId = await ensureUser(p)
+    // prettier-ignore
+    // loop runs once for each iteration of people
     const existing = memberships.find((m) => m.publicUserData?.userId === userId)
 
     if (!existing) {
+      // create
       await clerk.organizations.createOrganizationMembership({
         organizationId: ORG_ID,
         userId,
         role: p.orgRole,
       })
+      // update
     } else if (existing.role !== p.orgRole) {
       await clerk.organizations.updateOrganizationMembership({
         organizationId: ORG_ID,
@@ -64,5 +95,6 @@ export async function seedPeople(): Promise<People> {
     }
     people[p.key] = userId
   }
+
   return people
 }

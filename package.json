@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "seed:demo": "tsx --env-file=.env.local scripts/seed-demo/index.ts"
+    "seed:demo": "tsx --env-file=.env.local scripts/seed-demo/index.ts",
+    "seed:demo:clear": "tsx --env-file=.env.local scripts/seed-demo/index.ts --clear"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.21",
@@ -23,6 +24,7 @@
     "voyageai": "^0.4.0"
   },
   "devDependencies": {
+    "@clerk/backend": "^3.22.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/pg": "^8.20.0",
@@ -33,6 +35,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }

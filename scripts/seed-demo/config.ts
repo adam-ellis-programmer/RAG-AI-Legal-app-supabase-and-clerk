@@ -6,13 +6,24 @@ import { createClerkClient } from '@clerk/backend'
 export const ORG_ID = process.env.DEMO_ORG_ID ?? ''
 export const FIRM_NAME = 'Wakefield & Croft LLP'
 
-export const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY })
+export const clerk = createClerkClient({
+  secretKey: process.env.CLERK_SECRET_KEY,
+})
 
 /** Stop before touching anything if the environment is incomplete. */
 export function checkEnv() {
-    // Only checks the three in the array
-  const missing = ['DEMO_ORG_ID', 'CLERK_SECRET_KEY', 'DATABASE_URL'].filter(
+  // Only checks the three in the array
+  // prettier-ignore
+  const missing = ['DEMO_ORG_ID', 'CLERK_SECRET_KEY', 'DATABASE_URL', 'VOYAGE_API_KEY'].filter(
     (k) => !process.env[k],
   )
   if (missing.length) throw new Error(`Missing env: ${missing.join(', ')}`)
+}
+
+/** A date n days before now, at a given hour, so seeded data always looks recent. */
+export function daysAgo(n: number, hour = 10) {
+  const d = new Date()
+  d.setDate(d.getDate() - n)
+  d.setHours(hour, 0, 0, 0)
+  return d
 }

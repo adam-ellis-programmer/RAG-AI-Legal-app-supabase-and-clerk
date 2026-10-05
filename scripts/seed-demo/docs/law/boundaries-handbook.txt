@@ -1,0 +1,69 @@
+WAKEFIELD & CROFT LLP
+BOUNDARIES AND PARTY WALLS HANDBOOK
+Firm library reference, third edition
+
+This handbook is fictional training material written for the Lexo demonstration. It does not describe the law of any real jurisdiction and must not be relied on as legal advice. The rules, time periods and figures it contains were invented so that answers drawn from it can be checked against the text.
+
+PART 1: WHAT A BOUNDARY IS
+
+1.1 A boundary is the line that divides one parcel of land from another. It has no thickness. Physical features such as fences, hedges, walls and ditches may mark where a boundary runs, but they are evidence of the boundary rather than the boundary itself.
+
+1.2 Title plans show general boundaries only. A title plan indicates roughly where a boundary lies but does not fix its exact position. A line on a title plan drawn at a scale of 1:1250 can represent a strip of land almost a metre wide on the ground. Fee earners should never advise a client that a title plan settles a dispute about a strip narrower than one metre.
+
+1.3 Where the conveyance or transfer that first divided the land contains a measured plan, that plan is the best evidence of where the boundary was intended to run. Later plans, including estate agents' plans and survey drawings commissioned for a sale, carry less weight.
+
+PART 2: EVIDENCE OF WHERE A BOUNDARY RUNS
+
+2.1 The court looks at the evidence in a fixed order. First, the words and plans of the deed that created the boundary. Second, the physical features on the ground at the date of that deed. Third, the conduct of the owners since then, including where they have built fences and maintained hedges.
+
+2.2 The hedge and ditch presumption. Where a boundary is marked by a hedge with a ditch on one side, the boundary is presumed to run along the far edge of the ditch, away from the hedge. The reasoning is that a landowner digging a ditch at the very edge of their land would throw the earth onto their own side and plant the hedge on top of it.
+
+2.3 Fences. There is no general presumption that a fence belongs to the owner on whose side the posts stand. The position of fence posts is only one piece of evidence and is often unreliable, because fences are frequently replaced by whichever neighbour is most willing to pay.
+
+2.4 Replacement fences. When an old fence is replaced, the new fence must follow the line of the old one. A replacement fence placed more than 15 centimetres from the original line should be treated as a possible encroachment, and photographs of the old fence line should be obtained before any work is done.
+
+2.5 Expert evidence. In any dispute concerning a strip wider than 30 centimetres, the firm's practice is to instruct a single joint expert surveyor, chosen by agreement between the parties, rather than each side instructing its own. The surveyor's report should identify every historic plan relied on and explain how each was scaled onto the ground.
+
+PART 3: BOUNDARY AGREEMENTS
+
+3.1 Neighbours may settle where an unclear boundary runs by agreement. A boundary agreement is valid only if it is in writing, signed by both owners, and accompanied by a plan on which the agreed line is marked.
+
+3.2 A boundary agreement that merely clarifies an uncertain line does not transfer land. An agreement that moves a known boundary does transfer land and must be completed as a formal transfer.
+
+3.3 Once a boundary agreement has been signed, it binds later owners of both properties if it has been noted on the register within six months of signature. An agreement noted after that period binds only the original parties.
+
+PART 4: ADVERSE POSSESSION OF A STRIP
+
+4.1 A person who has occupied a neighbour's land as if it were their own may in some circumstances acquire title to it. For the purposes of this handbook, the occupier must show factual possession for an unbroken period of fourteen years.
+
+4.2 Factual possession requires a sufficient degree of physical control. Enclosing the strip with a fence, gating it, or building on it will usually be enough. Mowing grass or parking occasionally on an open strip will usually not be enough.
+
+4.3 The occupier must also have intended to possess the land. Possession that began with the owner's permission does not count until the permission has clearly ended.
+
+4.4 Where the strip has been occupied by a series of owners of the neighbouring property, their periods of possession may be added together, provided each owner took over directly from the previous one with no gap.
+
+4.5 A claim fails if the paper owner can show that, during the fourteen-year period, they objected in writing to the occupation. A single written objection is enough to break the period, and the fourteen years then start again from the date of the objection.
+
+PART 5: PARTY WALLS
+
+5.1 A party wall is a wall that stands on the land of two owners, or that stands on one owner's land but is used by both to separate their buildings. A fence is never a party wall.
+
+5.2 Notice before work. An owner who intends to carry out work to a party wall, including cutting into it, raising it or demolishing and rebuilding it, must serve written notice on the adjoining owner at least forty-five days before the work begins. The notice must describe the work and include a drawing.
+
+5.3 Responses to notice. The adjoining owner has fourteen days from service to consent in writing or to dissent. An adjoining owner who does nothing within fourteen days is treated as having dissented.
+
+5.4 Dissent and surveyors. Where the adjoining owner dissents, the owners may appoint a single agreed surveyor, or one surveyor each. The surveyor or surveyors make an award setting out how and when the work may be done, the hours of working, and who pays for what.
+
+5.5 Costs. The owner carrying out the work normally pays all the surveyors' fees. The adjoining owner contributes to the cost of the work itself only where it is needed because of a defect in the wall for which both owners are responsible.
+
+5.6 Damage. The owner carrying out the work must make good any damage it causes to the adjoining owner's property, or pay compensation instead if the adjoining owner prefers.
+
+PART 6: PRACTICE CHECKLIST
+
+6.1 At the first meeting, obtain the title registers and title plans for both properties, together with every earlier conveyance that can be traced back to the original division of the land.
+
+6.2 Ask the client for dated photographs of the boundary, in particular any that show an older fence, hedge or wall.
+
+6.3 Record whether there has been any written correspondence between the neighbours about the boundary, and the date of each letter. Under Part 4.5, a single letter of objection can defeat an adverse possession claim.
+
+6.4 Recommend mediation early. The firm's experience is that boundary disputes are rarely worth the cost of a full trial, and that most settle within three months of a surveyor's report being shared.
