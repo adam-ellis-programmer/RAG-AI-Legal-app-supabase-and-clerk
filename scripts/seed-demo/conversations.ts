@@ -24,7 +24,8 @@ type Turn = {
   daysAgo: number
   hour: number
   question: string
-  answer: string // [n] markers match the order of `cites`
+  searchQuery?: string // follow-ups: the standalone version used for scoring, as Haiku would rewrite it
+  answer: string
   cites: Cite[]
 }
 type Conversation = { case: CaseKey; ticked: DocRef[]; turns: Turn[] }
@@ -165,9 +166,11 @@ async function buildSource(n: number, cite: Cite, vector: string, caseKey: CaseK
     .where(
       and(
         eq(documents.fileId, doc.id),
+        // . It's used instead of LIKE '%...%' because % and _ have special meanings in LIKE, and position has none ??
         sql`position(lower(${cite.phrase}) in lower(${documents.content})) > 0`,
       ),
     )
+    // : because chunks overlap by 150 characters, a phrase near a boundary can appear in two chunks. This always picks the first.??
     .orderBy(documents.chunkIndex)
     .limit(1)
 
@@ -201,6 +204,8 @@ export async function seedConversations(people: People, library: Library, cases:
   for (const convo of CONVERSATIONS) {
     const matterId = cases[convo.case].id
     const ticked = convo.ticked.map((ref) => resolveDoc(ref, convo.case, library, cases).id)
+
+    // threadId follows your query route's rule: the first question's ID doubles as the thread ID, and the follow-up carries the same threadId. That's what makes the case page show "Follow-up:" and the saved-answer page show the whole conversation.
     const threadId = randomUUID() // the first question's id doubles as the thread id
 
     for (const [i, turn] of convo.turns.entries()) {
