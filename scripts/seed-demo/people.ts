@@ -36,7 +36,7 @@ const PEOPLE = [
   },
 ] as const
 
-type PersonKey = (typeof PEOPLE)[number]['key'] // 'eleanor' | 'daniel' | 'priya' | 'visitor'
+export type PersonKey = (typeof PEOPLE)[number]['key'] // 'eleanor' | 'daniel' | 'priya' | 'visitor'
 export type People = Record<PersonKey, string> // key → Clerk userId
 
 async function ensureUser(p: (typeof PEOPLE)[number]) {
