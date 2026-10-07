@@ -25,7 +25,7 @@ type Turn = {
   hour: number
   question: string
   searchQuery?: string // follow-ups: the standalone version used for scoring, as Haiku would rewrite it
-  answer: string
+  answer: string // [n] markers: one number per entry in `cites`, renumbered when seeded
   cites: Cite[]
 }
 type Conversation = { case: CaseKey; ticked: DocRef[]; turns: Turn[] }
@@ -64,6 +64,7 @@ There is a second, independent point: the June 2026 fence stands roughly 13 cent
         daysAgo: 18,
         hour: 15,
         question: 'What should we put together before suggesting mediation?',
+        searchQuery: 'What evidence should be gathered before proposing mediation in the Hartley v Pemberton boundary fence dispute?',
         cites: [
           { doc: 'case:surveyorReport', phrase: 'it stands 41 centimetres from the line of the original posts' },
           { doc: 'law:boundaries', phrase: 'instruct a single joint expert surveyor' },
@@ -114,6 +115,7 @@ Mr Reed asked for the code in writing on 12 March and 15 June 2026 and received 
         daysAgo: 9,
         hour: 14,
         question: 'What about the stone planters, and what should our next step be?',
+        searchQuery: 'Do the stone planters on the Brookfield Farm track obstruct the right of way, and what should the next step be?',
         cites: [
           { doc: 'case:reedStatement', phrase: 'I measured the gap between the planters and the opposite verge at 2.4 metres' },
           { doc: 'case:reedStatement', phrase: 'Our combine harvester is 3.1 metres wide' },
@@ -166,11 +168,13 @@ async function buildSource(n: number, cite: Cite, vector: string, caseKey: CaseK
     .where(
       and(
         eq(documents.fileId, doc.id),
-        // . It's used instead of LIKE '%...%' because % and _ have special meanings in LIKE, and position has none ??
+        // "Does this chunk contain the phrase?", ignoring case. position() is used
+        // rather than LIKE '%...%' because LIKE treats % and _ as wildcards.
         sql`position(lower(${cite.phrase}) in lower(${documents.content})) > 0`,
       ),
     )
-    // : because chunks overlap by 150 characters, a phrase near a boundary can appear in two chunks. This always picks the first.??
+    // Chunks overlap by 150 characters, so a phrase can sit in two neighbouring
+    // chunks. Taking the earlier one keeps the result the same on every run.
     .orderBy(documents.chunkIndex)
     .limit(1)
 
@@ -205,17 +209,33 @@ export async function seedConversations(people: People, library: Library, cases:
     const matterId = cases[convo.case].id
     const ticked = convo.ticked.map((ref) => resolveDoc(ref, convo.case, library, cases).id)
 
-    // threadId follows your query route's rule: the first question's ID doubles as the thread ID, and the follow-up carries the same threadId. That's what makes the case page show "Follow-up:" and the saved-answer page show the whole conversation.
-    const threadId = randomUUID() // the first question's id doubles as the thread id
+    // Same rule as the query route: the first question's id doubles as the thread id,
+    // and the follow-up carries it too. That's what groups them into one conversation.
+    const threadId = randomUUID()
 
     for (const [i, turn] of convo.turns.entries()) {
       const id = i === 0 ? threadId : randomUUID()
-      const vector = await embedQuestion(turn.question)
 
+      // Score against the standalone question, as the real search would:
+      // follow-ups are rewritten by Haiku before searching.
+      const vector = await embedQuestion(turn.searchQuery ?? turn.question)
+
+      // One source per distinct passage. If two cites land in the same chunk,
+      // the second reuses the first one's number instead of being listed again.
       const sources: QuerySource[] = []
+      const renumber = new Map<number, number>() // cite number in the text → final source number
       for (const [j, cite] of turn.cites.entries()) {
-        sources.push(await buildSource(j + 1, cite, vector, convo.case, library, cases))
+        const s = await buildSource(sources.length + 1, cite, vector, convo.case, library, cases)
+        const same = sources.find((x) => x.fileId === s.fileId && x.chunkIndex === s.chunkIndex)
+        if (same) {
+          renumber.set(j + 1, same.n) // duplicate passage: point at the existing source
+        } else {
+          sources.push(s) // new passage: keep it
+          renumber.set(j + 1, s.n)
+        }
       }
+      // Rewrite every [n] marker in the text to its final source number.
+      const answer = turn.answer.replace(/\[(\d+)\]/g, (_, d) => `[${renumber.get(Number(d)) ?? d}]`)
 
       const createdAt = daysAgo(turn.daysAgo, turn.hour)
       await db.insert(queries).values({
@@ -225,7 +245,7 @@ export async function seedConversations(people: People, library: Library, cases:
         threadId,
         userId: people[turn.askedBy],
         question: turn.question,
-        answer: turn.answer,
+        answer,
         fileIds: ticked,
         sources,
         status: 'complete',
