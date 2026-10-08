@@ -5,7 +5,6 @@ import { Show, SignOutButton, UserButton } from '@clerk/nextjs'
 import { isDemoOrg } from '@/lib/demo'
 
 export default async function Navbar() {
-
   const { orgId } = await auth()
   const isDemo = isDemoOrg(orgId)
 
@@ -22,12 +21,17 @@ export default async function Navbar() {
         <div className='flex items-center gap-6 text-sm'>
           <Link
             href='/pricing'
-            className='text-slate-600 transition hover:text-slate-900'
+            className='text-slate-600 transition  hover:text-slate-900'
           >
             Pricing
           </Link>
 
           <Show when='signed-out'>
+            <form action='/demo/start' method='post'>
+              <button className='text-slate-600 transition  bg-amber-300 rounded-2xl px-3 py-1 cursor-pointer hover:text-slate-900'>
+                Try the demo
+              </button>
+            </form>
             <Link
               href='/sign-in'
               className='text-slate-600 transition hover:text-slate-900'

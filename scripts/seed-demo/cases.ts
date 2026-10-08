@@ -46,7 +46,7 @@ type CaseSpec = {
   }[]
 }
 
-const CASES = [
+export const CASES = [
   {
     key: 'boundary',
     client: 'hartley',

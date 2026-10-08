@@ -2,7 +2,10 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { auth } from '@clerk/nextjs/server'
-import { sql } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
+import { documents } from '@/lib/schema'
+import { SearchablePanel } from '@/components/SearchablePanel'
+
 import { db } from '@/lib/db'
 import PageJump from '@/components/PageJump'
 import DocSearch from '@/components/DocSearch'
@@ -152,7 +155,25 @@ export default async function DocumentViewPage({
     })
   }
 
-  const total = Number(row.len)
+  const total = Number(row.len) // ← existing
+
+  // For the "how this became searchable" panel: every chunk's start position
+  // (small integers, cheap even for long books) and chunk #0's vector.
+  // prettier-ignore
+  const [chunkRows, [firstChunk]] = await Promise.all([
+    db
+      .select({ chunkIndex: documents.chunkIndex, startChar: documents.startChar })
+      .from(documents)
+      .where(and(eq(documents.fileId, id), eq(documents.orgId, orgId)))
+      .orderBy(documents.chunkIndex),
+    db
+      .select({ embedding: documents.embedding })
+      .from(documents)
+      .where(and(eq(documents.fileId, id), eq(documents.orgId, orgId)))
+      .orderBy(documents.chunkIndex)
+      .limit(1),
+  ])
+
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
   const page = Math.min(
     totalPages,
@@ -230,6 +251,15 @@ export default async function DocumentViewPage({
           {row.matter_id ? 'Back to case' : 'All documents'}
         </Link>
       </div>
+
+      {chunkRows.length > 0 && firstChunk && (
+        <SearchablePanel
+          documentId={id}
+          totalChars={total}
+          chunks={chunkRows}
+          sampleVector={firstChunk.embedding}
+        />
+      )}
 
       {/* Toolbar: search + jump-to-page */}
       <div className='mb-6 space-y-3'>

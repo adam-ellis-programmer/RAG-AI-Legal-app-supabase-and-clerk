@@ -5,7 +5,7 @@ import { clerk, ORG_ID } from './config'
 
 // The visitor goes LAST so the firm already has an admin before
 // the visitor is set to an ordinary member.
-const PEOPLE = [
+export const PEOPLE = [
   {
     key: 'eleanor',
     email: 'eleanor.wakefield@example.com',
