@@ -59,15 +59,16 @@ export async function GET(req: Request) {
       .from(auditLogs)
       .where(eq(auditLogs.orgId, DEMO_ORG_ID))
 
-    let shiftedHours = 0
+    let shiftedDays = 0
     // prettier-ignore
     if (newest) {
-      const target = Date.now() - NEWEST_SEEDED_DAYS_AGO * 24 * 60 * 60 * 1000
-      const shiftMs = target - new Date(newest).getTime()
+      const DAY_MS = 24 * 60 * 60 * 1000
+      const target = Date.now() - NEWEST_SEEDED_DAYS_AGO * DAY_MS
+      // Whole days only, so an 11:00 question stays at 11:00.
+      shiftedDays = Math.floor((target - new Date(newest).getTime()) / DAY_MS)
 
-      if (shiftMs > 60 * 60 * 1000) {
-        // Only move forward, and only if it's worth it (more than an hour).
-        const by = sql`make_interval(secs => ${shiftMs / 1000}::double precision)`
+      if (shiftedDays > 0) {
+        const by = sql`make_interval(days => ${shiftedDays})`
         const demoMatters = tx.select({ id: matters.id }).from(matters).where(eq(matters.orgId, DEMO_ORG_ID))
 
         await tx.update(clients).set({ createdAt: sql`${clients.createdAt} + ${by}` }).where(eq(clients.orgId, DEMO_ORG_ID))
@@ -77,8 +78,6 @@ export async function GET(req: Request) {
         await tx.update(documents).set({ createdAt: sql`${documents.createdAt} + ${by}` }).where(eq(documents.orgId, DEMO_ORG_ID))
         await tx.update(queries).set({ createdAt: sql`${queries.createdAt} + ${by}` }).where(eq(queries.orgId, DEMO_ORG_ID))
         await tx.update(auditLogs).set({ createdAt: sql`${auditLogs.createdAt} + ${by}` }).where(eq(auditLogs.orgId, DEMO_ORG_ID))
-
-        shiftedHours = Math.round(shiftMs / 3_600_000)
       }
     }
 
@@ -86,7 +85,7 @@ export async function GET(req: Request) {
       removedQueries: removedQueries.length,
       removedActivity: removedActivity.length,
       removedUsage: removedUsage.length,
-      shiftedHours,
+      shiftedDays,
     }
   })
 
