@@ -10,6 +10,7 @@ import { logAction } from '@/lib/audit'
 import { pageForChar } from '@/lib/pagination'
 import { isDemoOrg } from '@/lib/demo'
 import { claimDemoQuestion } from '@/lib/demo-quota'
+import { claimFirmQuestion } from '@/lib/firm-quota'
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
@@ -179,10 +180,13 @@ export async function POST(
       )
     }
 
-    if (isDemoOrg(orgId)) {
-      const refusal = await claimDemoQuestion(req, 'case-query')
-      if (refusal) return Response.json({ error: refusal }, { status: 429 })
-    } // It goes this late because a question with an invalid document selection shouldn't cost the visitor one of their 10. Add the same two imports.
+    // Question limits, checked before anything costs money:
+    // demo visitors by IP and day, real firms by month.
+    const refusal = isDemoOrg(orgId)
+      ? await claimDemoQuestion(req, 'chat')
+      : await claimFirmQuestion(orgId, userId, 'case-query')
+    if (refusal) return Response.json({ error: refusal }, { status: 429 })
+    // It goes this late because a question with an invalid document selection shouldn't cost the visitor one of their 10. Add the same two imports.
 
     // ---- 1. Embed the question (rewritten to stand alone if it's a follow-up) ----
     const searchQuestion = await standaloneQuestion(history, question)

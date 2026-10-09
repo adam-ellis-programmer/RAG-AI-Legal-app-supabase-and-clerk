@@ -203,3 +203,20 @@ export const demoUsage = pgTable(
     index('demo_usage_created_idx').on(t.createdAt),
   ],
 )
+
+
+
+// One row per question asked by a (non-demo) firm, from either question route.
+// Counted per firm per calendar month to enforce the free-tier allowance.
+export const questionUsage = pgTable(
+  'question_usage',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    orgId: text('org_id').notNull(),
+    userId: text('user_id').notNull(),
+    route: text('route').notNull(), // 'chat' | 'case-query'
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  // The index matches the one question we'll ask: "how many rows for this firm since the 1st of the month?"
+  (t) => [index('question_usage_org_created_idx').on(t.orgId, t.createdAt)],
+)

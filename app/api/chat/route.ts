@@ -9,6 +9,7 @@ import { pageForChar } from '@/lib/pagination'
 
 import { isDemoOrg } from '@/lib/demo'
 import { claimDemoQuestion } from '@/lib/demo-quota'
+import { claimFirmQuestion } from '@/lib/firm-quota'
 
 /**
  * quick notes
@@ -59,10 +60,18 @@ export async function POST(req: Request) {
     }
 
         // Demo firm: per-visitor and daily limits, checked before anything costs money.
-    if (isDemoOrg(orgId)) {
-      const refusal = await claimDemoQuestion(req, 'chat')
-      if (refusal) return Response.json({ error: refusal }, { status: 429 })
-    }
+    // if (isDemoOrg(orgId)) {
+    //   const refusal = await claimDemoQuestion(req, 'chat')
+    //   if (refusal) return Response.json({ error: refusal }, { status: 429 })
+    // }
+
+    // Question limits, checked before anything costs money:
+    // demo visitors by IP and day, real firms by month.
+    const refusal = isDemoOrg(orgId)
+      ? await claimDemoQuestion(req, 'chat')
+      : await claimFirmQuestion(orgId, userId, 'chat')
+    if (refusal) return Response.json({ error: refusal }, { status: 429 })
+
 
     // 1. Embed the QUESTION. Note inputType "query" — documents were embedded
     //    with "document". Same model (voyage-4) so the vectors are comparable.
