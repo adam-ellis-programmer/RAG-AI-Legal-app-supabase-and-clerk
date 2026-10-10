@@ -25,7 +25,7 @@ export default async function AppLayout({
               href='/'
               className='font-serif text-lg font-semibold text-slate-900'
             >
-              Lexo<span className='text-slate-400'>.</span>
+              Citewise<span className='text-slate-400'>.</span>
             </Link>
             <nav className='flex items-center gap-4 text-sm'>
               <Link

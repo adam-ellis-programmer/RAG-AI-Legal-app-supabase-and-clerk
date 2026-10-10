@@ -8,6 +8,7 @@ import { clients, matters, matterMembers } from '@/lib/schema'
 import { createMatter } from './actions'
 import { SubmitButton } from '@/components/SubmitButton'
 import { isDemoOrg } from '@/lib/demo'
+import { ClientDetails } from '@/components/ClientDetails'
 export default async function ClientDetailPage({
   params,
   searchParams,
@@ -53,6 +54,9 @@ export default async function ClientDetailPage({
   // prettier-ignore
   const visibleCases = showArchived ? cases : cases.filter((c) => c.status !== 'archived')
 
+  // Personal data follows case membership: on at least one of this client's cases.
+  const canSeeDetails = cases.length > 0
+
   return (
     <main className='mx-auto max-w-3xl px-6 py-10'>
       <div className='mb-8'>
@@ -67,6 +71,15 @@ export default async function ClientDetailPage({
         </h1>
         <p className='mt-1 text-sm text-slate-500'>Cases for this client.</p>
       </div>
+
+      {canSeeDetails ? (
+        <ClientDetails client={client} canEdit={!isDemo} />
+      ) : (
+        <p className='mb-8 rounded-lg bg-slate-50 p-3 text-sm text-slate-600 ring-1 ring-slate-200'>
+          This client&apos;s personal details are visible only to people on one
+          of their cases.
+        </p>
+      )}
 
       {/* Create-a-case form. The hidden clientId tells the action which client
           this case belongs to (validated server-side in the action). */}

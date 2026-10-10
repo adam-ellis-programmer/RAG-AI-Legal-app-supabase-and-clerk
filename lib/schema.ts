@@ -9,6 +9,7 @@ import {
   index,
   uniqueIndex,
   jsonb,
+  date,
 } from 'drizzle-orm/pg-core'
 
 // lib/schema.ts — defines the documents table in TypeScript:
@@ -66,6 +67,15 @@ export const clients = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     orgId: text('org_id').notNull(), // which firm owns this client
     name: text('name').notNull(), // "Mr Johnson", "Acme Corp"
+
+    // Personal details: visible only to people on one of this client's cases.
+    dateOfBirth: date('date_of_birth'), // 'YYYY-MM-DD'
+    addressLine1: text('address_line1'),
+    addressLine2: text('address_line2'),
+    town: text('town'),
+    postcode: text('postcode'),
+    phone: text('phone'),
+    email: text('email'),
     createdBy: text('created_by').notNull(), // the userId who onboarded them
     createdAt: timestamp('created_at', { withTimezone: true })
       .defaultNow()
@@ -184,9 +194,7 @@ export const queries = pgTable(
   ],
 )
 
-
 // ------------------- demo usage ---------------------------------------
-
 
 // Demo question usage: one row per question asked in the demo firm, keyed by a
 // salted hash of the visitor's IP. Used only for rate limiting, never shown.
@@ -196,15 +204,15 @@ export const demoUsage = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     ipHash: text('ip_hash').notNull(),
     route: text('route').notNull(), // 'chat' | 'case-query'
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (t) => [
     index('demo_usage_ip_created_idx').on(t.ipHash, t.createdAt),
     index('demo_usage_created_idx').on(t.createdAt),
   ],
 )
-
-
 
 // One row per question asked by a (non-demo) firm, from either question route.
 // Counted per firm per calendar month to enforce the free-tier allowance.
@@ -215,8 +223,33 @@ export const questionUsage = pgTable(
     orgId: text('org_id').notNull(),
     userId: text('user_id').notNull(),
     route: text('route').notNull(), // 'chat' | 'case-query'
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   // The index matches the one question we'll ask: "how many rows for this firm since the 1st of the month?"
   (t) => [index('question_usage_org_created_idx').on(t.orgId, t.createdAt)],
+)
+
+// Invoices raised on a case. Money is stored in pence as whole numbers:
+// decimals can't represent amounts like 0.10 exactly, so they drift.
+// "Owed" is never stored: it's always amount - paid, so it can't disagree.
+export const invoices = pgTable(
+  'invoices',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    orgId: text('org_id').notNull(),
+    matterId: uuid('matter_id')
+      .notNull()
+      .references(() => matters.id, { onDelete: 'cascade' }),
+    number: text('number').notNull(), // e.g. "INV-2026-0042"
+    issuedOn: date('issued_on').notNull(),
+    amountPence: integer('amount_pence').notNull(),
+    paidPence: integer('paid_pence').notNull().default(0),
+    createdBy: text('created_by').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [index('invoices_matter_id_idx').on(t.matterId)],
 )

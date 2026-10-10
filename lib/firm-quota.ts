@@ -19,7 +19,7 @@ const UNLIMITED = new Set(
 function startOfMonth() {
   const d = new Date()
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1))
-}
+} 
 
 /**
  * Try to use one of this firm's questions. Returns null if allowed (and records it),

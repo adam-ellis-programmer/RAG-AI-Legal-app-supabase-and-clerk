@@ -20,7 +20,7 @@ const sourceSerif = Source_Serif_4({
 })
 
 export const metadata: Metadata = {
-  title: 'Lexo - Answers you can trace to the source',
+  title: 'Citewise - AI RAG App',
   description:
     'AI document assistant for legal teams. Grounded, cited answers from your own documents.',
 }

@@ -15,7 +15,7 @@ export default async function Navbar() {
           href='/'
           className='font-serif text-lg font-semibold tracking-tight text-slate-900'
         >
-          Lexo<span className='text-slate-400'>.</span>
+          Citewise<span className='text-slate-400'>.</span>
         </Link>
 
         <div className='flex items-center gap-6 text-sm'>
