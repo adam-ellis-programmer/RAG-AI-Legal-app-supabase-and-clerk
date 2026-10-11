@@ -18,7 +18,7 @@ export default async function ClientDetailPage({
 }) {
   const { id } = await params
   const showArchived = (await searchParams).archived === '1'
-
+  // throw new Error('test error page 123')
   const { userId, orgId } = await auth()
   if (!userId || !orgId) notFound()
   const isDemo = isDemoOrg(orgId)

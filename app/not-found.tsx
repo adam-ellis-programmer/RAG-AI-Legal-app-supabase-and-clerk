@@ -16,4 +16,5 @@ export default function NotFound() {
       </Link>
     </main>
   )
+  // rep -rn "Lexo" app components lib
 }
