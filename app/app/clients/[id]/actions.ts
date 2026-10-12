@@ -115,7 +115,9 @@ export async function updateClientDetails(
     .select({ id: matterMembers.id })
     .from(matterMembers)
     .innerJoin(matters, eq(matters.id, matterMembers.matterId))
-    .where(and(eq(matters.clientId, clientId), eq(matterMembers.userId, userId)))
+    .where(
+      and(eq(matters.clientId, clientId), eq(matterMembers.userId, userId)),
+    )
     .limit(1)
   if (!onCase) throw new Error('Client not found')
 
@@ -127,6 +129,8 @@ export async function updateClientDetails(
   // Comparing as strings works: YYYY-MM-DD sorts alphabetically in date order.
   const dateOfBirth = field(formData, 'dateOfBirth')
   if (dateOfBirth && dateOfBirth > new Date().toISOString().slice(0, 10)) {
+    console.log('VALUES: ', values)
+
     return { error: 'Date of birth cannot be in the future.', values }
   }
 
