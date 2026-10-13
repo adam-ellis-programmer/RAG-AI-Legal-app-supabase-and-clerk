@@ -6,7 +6,8 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { and, eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
-import { matters, matterMembers } from '@/lib/schema'
+import { clients, matters, matterMembers, invoices } from '@/lib/schema'
+import { formatPence, parsePounds } from '@/lib/money'
 import { logAction } from '@/lib/audit'
 import { getMatterAccess, getOrgMembers, isUuid } from '@/lib/matter-access'
 import { assertNotDemo } from '@/lib/demo'
@@ -245,4 +246,132 @@ export async function setMatterStatus(formData: FormData) {
 
   revalidatePath(`/app/matters/${matterId}`)
   revalidatePath(`/app/clients/${matter.clientId}`)
+}
+
+// ----- billing: add an invoice ----------
+
+export type InvoiceFormState = {
+  error?: string
+  saved?: boolean
+  values?: Record<string, string>
+}
+
+const INVOICE_FIELDS = ['number', 'issuedOn', 'amount', 'paid']
+
+export async function addInvoice(
+  _prev: InvoiceFormState,
+  formData: FormData,
+): Promise<InvoiceFormState> {
+  // ----- Assert Demo ---------
+  await assertNotDemo()
+
+  // Both walls + case admin: billing is for the case lead only (throws if not).
+  const matterId = String(formData.get('matterId') || '')
+
+  // requireMatterAdmin does both walls and the admin check in one call
+  const { userId, orgId } = await requireMatterAdmin(matterId)
+
+  // Expected mistakes: return them, keeping what was typed.
+  const values = Object.fromEntries(
+    INVOICE_FIELDS.map((k) => [k, String(formData.get(k) ?? '').trim()]),
+  )
+  const today = new Date().toISOString().slice(0, 10)
+
+  if (!values.number) {
+    return { error: 'Give the invoice a number, e.g. INV-2026-0042.', values }
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(values.issuedOn)) {
+    return { error: 'Choose the date the invoice was issued.', values }
+  }
+  if (values.issuedOn > today) {
+    return { error: 'The issue date cannot be in the future.', values }
+  }
+  const amountPence = parsePounds(values.amount)
+  // if (!amountPence) catches both null (not a number) and 0 (a zero invoice), since both are falsy.
+  if (!amountPence) {
+    return { error: 'Enter the invoice amount, e.g. 1250 or 1,250.50.', values }
+  }
+  const paidPence = values.paid === '' ? 0 : parsePounds(values.paid)
+  if (paidPence === null) {
+    return {
+      error: 'Enter the amount paid so far, e.g. 500, or leave it blank.',
+      values,
+    }
+  }
+  if (paidPence > amountPence) {
+    return { error: 'The amount paid cannot be more than the invoice.', values }
+  }
+
+  const [invoice] = await db
+    .insert(invoices)
+    .values({
+      orgId,
+      matterId,
+      number: values.number,
+      issuedOn: values.issuedOn,
+      amountPence,
+      paidPence,
+      createdBy: userId,
+    })
+    .returning({ id: invoices.id })
+
+  await logAction({
+    orgId,
+    userId,
+    matterId,
+    action: 'invoice.added',
+    targetType: 'invoice',
+    targetId: invoice.id,
+    detail: `${values.number} · ${formatPence(amountPence)}`,
+  })
+
+  revalidatePath(`/app/matters/${matterId}`)
+  return { saved: true }
+}
+
+// ----- billing: mark an invoice as paid in full ----------
+
+
+// markInvoicePaid checks access against the invoice’s own case. 
+// The form only sends an invoice ID, so we look up which case it belongs to, 
+// then check you’re an admin there. 
+// Trusting a matterId sent from the form would let someone mark another case’s invoice as paid.
+
+// Owed is never stored. Marking an invoice paid just sets paid = amount, and “owed” (amount − paid) becomes zero automatically.
+export async function markInvoicePaid(formData: FormData) {
+  // ----- Assert Demo ---------
+  await assertNotDemo()
+
+  const invoiceId = String(formData.get('invoiceId') || '')
+  if (!isUuid(invoiceId)) return
+
+  // Find the invoice first, so we know which case to check access against.
+  const [invoice] = await db
+    .select()
+    .from(invoices)
+    .where(eq(invoices.id, invoiceId))
+    .limit(1)
+  if (!invoice) throw new Error('Invoice not found')
+
+  // Both walls + case admin, on the invoice's own case.
+  const { userId, orgId } = await requireMatterAdmin(invoice.matterId)
+  if (invoice.orgId !== orgId) throw new Error('Invoice not found')
+  if (invoice.paidPence === invoice.amountPence) return // already paid
+
+  await db
+    .update(invoices)
+    .set({ paidPence: invoice.amountPence })
+    .where(eq(invoices.id, invoice.id))
+
+  await logAction({
+    orgId,
+    userId,
+    matterId: invoice.matterId,
+    action: 'invoice.paid',
+    targetType: 'invoice',
+    targetId: invoice.id,
+    detail: `${invoice.number} · ${formatPence(invoice.amountPence)}`,
+  })
+
+  revalidatePath(`/app/matters/${invoice.matterId}`)
 }

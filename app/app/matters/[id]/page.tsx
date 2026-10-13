@@ -5,7 +5,9 @@ import { db } from '@/lib/db'
 import { and, desc, eq, inArray, isNull } from 'drizzle-orm'
 import { CaseQuery } from '@/components/CaseQuery'
 // prettier-ignore
-import { clients, matterMembers, documentFiles, queries, auditLogs } from '@/lib/schema'
+import { clients, matterMembers, documentFiles, queries, auditLogs, invoices } from '@/lib/schema' // add invoices
+import { CaseBilling } from '@/components/CaseBilling'
+
 import { CaseUpload } from '@/components/CaseUpload'
 // prettier-ignore
 import { CaseActivity, ACTIVITY_FILTERS, type ActivityFilter } from '@/components/CaseActivity'
@@ -116,6 +118,21 @@ export default async function MatterPage({
         )
         .orderBy(desc(auditLogs.createdAt))
         .limit(50)
+    : []
+
+  // Billing: case admins only, like Case activity.
+  const caseInvoices = isAdmin
+    ? await db
+        .select({
+          id: invoices.id,
+          number: invoices.number,
+          issuedOn: invoices.issuedOn,
+          amountPence: invoices.amountPence,
+          paidPence: invoices.paidPence,
+        })
+        .from(invoices)
+        .where(and(eq(invoices.matterId, id), eq(invoices.orgId, orgId)))
+        .orderBy(desc(invoices.issuedOn))
     : []
 
   const names = Object.fromEntries(orgMembers.map((m) => [m.userId, m.name]))
@@ -245,7 +262,7 @@ export default async function MatterPage({
                     )}
 
                     {/* restored: remove from the case (the last admin can't be removed) */}
-                      {canEdit && !isLastAdmin && (
+                    {canEdit && !isLastAdmin && (
                       <form action={removeMatterMember}>
                         <input
                           type='hidden'
@@ -273,7 +290,7 @@ export default async function MatterPage({
           </ul>
 
           {/* Add member — admins only */}
-            {canEdit &&
+          {canEdit &&
             (candidates.length === 0 ? (
               <p className='mt-3 text-xs text-slate-400'>
                 Everyone in the firm is already on this case.
@@ -423,9 +440,15 @@ export default async function MatterPage({
           </ul>
         )}
       </section>{' '}
-        {/* ← end of Research history, keep */}
-
-        
+        {/* ← end of Research history */}
+        {/* --- cas billing --- */}
+        {isAdmin && (
+          <CaseBilling
+            matterId={matter.id}
+            invoices={caseInvoices}
+            canEdit={canEdit}
+          />
+        )}
         {/* Case activity — case admins only */}
         {isAdmin &&
           // prettier-ignore
@@ -438,7 +461,7 @@ export default async function MatterPage({
           <CaseActivity matterId={id} entries={activity} names={names} filter={filter} />
         </section>}
       </div>{' '}
-      {/* ← existing, keep */}
+      {/* ← existing */}
     </main>
   )
 }

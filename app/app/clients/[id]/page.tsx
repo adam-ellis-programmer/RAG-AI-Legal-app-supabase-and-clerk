@@ -2,9 +2,10 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { auth } from '@clerk/nextjs/server'
-import { and, desc, eq } from 'drizzle-orm'
+import { and, count, desc, eq, sql } from 'drizzle-orm'
 import { db } from '@/lib/db'
-import { clients, matters, matterMembers } from '@/lib/schema'
+import { clients, matters, matterMembers, invoices } from '@/lib/schema'
+import { ClientBilling } from '@/components/ClientBilling'
 import { createMatter } from './actions'
 import { SubmitButton } from '@/components/SubmitButton'
 import { isDemoOrg } from '@/lib/demo'
@@ -55,7 +56,29 @@ export default async function ClientDetailPage({
   const visibleCases = showArchived ? cases : cases.filter((c) => c.status !== 'archived')
 
   // Personal data follows case membership: on at least one of this client's cases.
-  const canSeeDetails = cases.length > 0
+  const canSeeDetails = cases.length > 0 // ← existing
+
+  // Billing per case, but only cases where *you* are an admin.
+  // The ethical wall applies to money too: being a member isn't enough.
+  const billing = await db
+    .select({
+      matterId: matters.id,
+      title: matters.title,
+      charged: sql<number>`sum(${invoices.amountPence})::int`,
+      paid: sql<number>`sum(${invoices.paidPence})::int`,
+    })
+    .from(invoices)
+    .innerJoin(matters, eq(matters.id, invoices.matterId))
+    .innerJoin(
+      matterMembers,
+      and(
+        eq(matterMembers.matterId, matters.id),
+        eq(matterMembers.userId, userId),
+        eq(matterMembers.role, 'admin'),
+      ),
+    )
+    .where(and(eq(matters.clientId, id), eq(matters.orgId, orgId)))
+    .groupBy(matters.id, matters.title)
 
   return (
     <main className='mx-auto max-w-3xl px-6 py-10'>
@@ -80,6 +103,9 @@ export default async function ClientDetailPage({
           of their cases.
         </p>
       )}
+
+      {/* --------- billing --------- */}
+      {billing.length > 0 && <ClientBilling rows={billing} />}
 
       {/* Create-a-case form. The hidden clientId tells the action which client
           this case belongs to (validated server-side in the action). */}

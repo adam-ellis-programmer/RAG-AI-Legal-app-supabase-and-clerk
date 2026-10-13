@@ -17,9 +17,10 @@ export type ActivityEntry = {
 // prettier-ignore
 export const ACTIVITY_FILTERS = {
   all: null,
-   documents: ['document.uploaded', 'document.view', 'document.deleted'],
+  documents: ['document.uploaded', 'document.view', 'document.deleted'],
   questions: ['query.ask'],
   team: ['matter.created', 'member.added', 'member.removed', 'member.role_changed', 'matter.status_changed'],
+  billing: ['invoice.added', 'invoice.paid'],
 } as const
 
 export type ActivityFilter = keyof typeof ACTIVITY_FILTERS
@@ -29,6 +30,7 @@ const FILTER_LABELS: Record<ActivityFilter, string> = {
   documents: 'Documents',
   questions: 'Questions',
   team: 'Team',
+  billing: 'Billing',
 }
 
 // Turn one log row into "verb + linked object".
@@ -58,6 +60,11 @@ function describe(e: ActivityEntry, matterId: string) {
         label: e.detail ? `“${e.detail}”` : 'a question',
         href: e.targetType === 'query' && e.targetId ? `/app/matters/${matterId}/queries/${e.targetId}#turn-${e.targetId}` : null,
       }
+
+    case 'invoice.added':
+      return { verb: 'added an invoice:', label: e.detail, href: null }
+    case 'invoice.paid':
+      return { verb: 'marked an invoice paid:', label: e.detail, href: null }
     default:
       return { verb: e.action, label: e.detail, href: null }
   }
