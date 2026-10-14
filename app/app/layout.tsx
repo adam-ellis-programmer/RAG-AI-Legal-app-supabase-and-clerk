@@ -46,6 +46,7 @@ export default async function AppLayout({
               >
                 Documents
               </Link>
+              <Link  className='text-slate-600 transition hover:text-slate-900' href='/app/plan'>Plan</Link>
             </nav>
           </div>
           <div className='flex items-center gap-4'>
@@ -72,3 +73,5 @@ export default async function AppLayout({
     </div>
   )
 }
+
+

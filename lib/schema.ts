@@ -260,9 +260,9 @@ export const invoices = pgTable(
 // change rows that Stripe created, and never a firm you comped by hand.
 
 /** ******
-  *  orgId is the primary key, so a firm can only ever have one plan row. That makes a firm having two conflicting plans impossible at the database level, not just unlikely.
-  *  No row means free. Every existing firm is automatically on the free plan, so there’s nothing to backfill.
-  *  The Stripe columns are added now but stay empty until step 4. That’s one schema change rather than two, the same approach as the invoices table.
+ *  orgId is the primary key, so a firm can only ever have one plan row. That makes a firm having two conflicting plans impossible at the database level, not just unlikely.
+ *  No row means free. Every existing firm is automatically on the free plan, so there’s nothing to backfill.
+ *  The Stripe columns are added now but stay empty until step 4. That’s one schema change rather than two, the same approach as the invoices table.
  * ******/
 
 export const orgPlans = pgTable('org_plans', {
@@ -272,6 +272,7 @@ export const orgPlans = pgTable('org_plans', {
   note: text('note'), // why it was comped, e.g. "Adam's test firm"
   stripeCustomerId: text('stripe_customer_id'),
   stripeSubscriptionId: text('stripe_subscription_id'),
+  seats: integer('seats'), // seats paid for in Stripe; null for comped/free firms
   updatedAt: timestamp('updated_at', { withTimezone: true })
     .defaultNow()
     .notNull(),

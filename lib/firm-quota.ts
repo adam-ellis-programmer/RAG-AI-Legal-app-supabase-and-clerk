@@ -45,11 +45,8 @@ export async function claimFirmQuestion(
   const plan = await getOrgPlan(orgId)
   const limit = PLANS[plan].questionsPerMonth
 
-  const [{ n }] = await db
-    .select({ n: count() })
-    .from(questionUsage)
-    .where(and(eq(questionUsage.orgId, orgId), gte(questionUsage.createdAt, startOfMonth())))
-
+  const n = await questionsUsedThisMonth(orgId)
+  
   if (n >= limit) {
     return plan === 'free'
       ? `Your firm has used its ${limit} free questions this month. Upgrade to Pro, or wait for the allowance to reset on the 1st.`
@@ -58,4 +55,19 @@ export async function claimFirmQuestion(
 
   await db.insert(questionUsage).values({ orgId, userId, route })
   return null
+}
+
+// The Plan page needs the same count the cap uses, so move it into its own function
+/** Questions this firm has asked since the 1st of the month. */
+export async function questionsUsedThisMonth(orgId: string) {
+  const [{ n }] = await db
+    .select({ n: count() })
+    .from(questionUsage)
+    .where(
+      and(
+        eq(questionUsage.orgId, orgId),
+        gte(questionUsage.createdAt, startOfMonth()),
+      ),
+    )
+  return n
 }
