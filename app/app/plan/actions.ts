@@ -44,6 +44,7 @@ export async function startCheckout() {
 
     allow_promotion_codes: true, // shows the "Add promotion code" box
     payment_method_collection: 'if_required', // a 100%-off code needs no card
+    adaptive_pricing: { enabled: false }, // always charge in the price's own currency (GBP)
 
     success_url: `${appUrl}/app/plan?checkout=success`,
     cancel_url: `${appUrl}/app/plan?checkout=cancelled`,

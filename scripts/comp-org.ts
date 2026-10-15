@@ -38,9 +38,12 @@ async function main() {
     return
   }
 
+  // Now that a cancelled firm keeps a source = 'stripe' row on Free, the “don’t overwrite a paying firm” check should only block firms that are currently paying:
+
   // Never overwrite a paying firm: their Stripe subscription would keep
   // charging, but the webhook would no longer recognise the row as Stripe's.
-  if (existing?.source === 'stripe') {
+  if (existing?.source === 'stripe' && existing.plan === 'pro') {
+    // was: existing?.source === 'stripe'
     throw new Error(
       `${org.name} already pays through Stripe. Cancel that first.`,
     )
