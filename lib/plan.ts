@@ -27,7 +27,7 @@ export async function getOrgPlan(orgId: string): Promise<Plan> {
   return row?.plan === 'pro' ? 'pro' : 'free'
 }
 
-
+// 
 // getOrgPlan stays as it is, because the question cap only needs the plan name. This one is for pages that need everything.
 // Everything about a firm's plan, for the Plan page and checkout
 // includedSeats and priceText repeat what’s in Stripe, so if you ever change the Stripe price, update these too. The comment on includedSeats is there to remind you.
