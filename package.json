@@ -9,7 +9,10 @@
     "lint": "eslint",
     "seed:demo": "tsx --env-file=.env.local scripts/seed-demo/index.ts",
     "seed:demo:clear": "tsx --env-file=.env.local scripts/seed-demo/index.ts --clear",
-    "comp-org": "tsx --env-file=.env.local scripts/comp-org.ts"
+    "comp-org": "tsx --env-file=.env.local scripts/comp-org.ts",
+    "reset-billing": "tsx --env-file=.env.local scripts/reset-billing.ts",
+    "check:stripe": "tsx --env-file=.env.local scripts/check-stripe.ts",
+    "stripe:listen": "stripe listen --events checkout.session.completed,customer.subscription.updated,customer.subscription.deleted --forward-to localhost:3000/api/stripe/webhook"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.21",

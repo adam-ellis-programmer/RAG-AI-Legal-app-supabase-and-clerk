@@ -1,20 +1,16 @@
 // app/api/stripe/webhook/route.ts
 // Stripe calls this when something happens to a firm's subscription.
-// It is the ONLY place that writes Stripe plans into org_plans: the checkout
-// and seat changes just ask Stripe, and Stripe tells us here what's been paid for.
+// It catches every change, including ones made outside the app (renewals,
+// the period ending, failed payments, the Stripe dashboard or portal).
+// The plan actions also sync straight after a click, so the page is right
+// immediately; both use syncSubscription() in lib/billing.ts.
+
 import type Stripe from 'stripe'
-import { eq } from 'drizzle-orm'
-import { db } from '@/lib/db'
-import { orgPlans } from '@/lib/schema'
 import { getStripe } from '@/lib/stripe'
+import { syncSubscription } from '@/lib/billing' // was in this file but now is shared in lib/billing
 
 // Statuses where the firm keeps Pro. 'past_due' means a renewal payment failed
 // and Stripe is retrying it: we give them that grace period rather than cutting off.
-const PRO_STATUSES: Stripe.Subscription.Status[] = [
-  'active',
-  'trialing',
-  'past_due',
-]
 
 export async function POST(req: Request) {
   const secret = process.env.STRIPE_WEBHOOK_SECRET
@@ -37,6 +33,7 @@ export async function POST(req: Request) {
 
   try {
     switch (event.type) {
+      // only runs when someone finished the Checkout page
       case 'checkout.session.completed': {
         const session = event.data.object
         if (session.mode === 'subscription' && session.subscription) {
@@ -44,6 +41,22 @@ export async function POST(req: Request) {
         }
         break
       }
+      // customer.subscription.updated: something about this subscription changed
+      // customer.subscription.deleted: the subscription has ended
+
+      /**
+       .deleted fires when:
+              *  the paid period runs out after a cancellation (e.g. on 17 November, after they clicked Cancel)
+              *  it’s cancelled immediately (the dashboard’s “Cancel immediately”, as in your tests)
+              *  the customer is deleted (your reset-billing script), which ends all their subscriptions
+              *  payment retries run out, if Stripe’s settings say to cancel at that point
+              * 
+              * In short:
+              *    Event	Means	Your app does
+              *    .completed	a checkout finished → subscription started	firm → Pro
+              *    .updated	the subscription changed	copy the new seats, dates, cancel state and status
+              *    .deleted	the subscription ended	firm → Free
+       */
       case 'customer.subscription.updated':
       case 'customer.subscription.deleted':
         await syncSubscription(event.data.object.id)
@@ -60,48 +73,6 @@ export async function POST(req: Request) {
 }
 
 /**
- * Make org_plans match Stripe for one subscription.
- * Always fetches the subscription fresh, so an old or repeated event
- * can never write out-of-date information.
- */
-async function syncSubscription(subscriptionId: string) {
-  const sub = await getStripe().subscriptions.retrieve(subscriptionId)
-
-  const orgId = sub.metadata.orgId
-  if (!orgId) {
-    console.warn('Stripe subscription has no orgId metadata, ignoring', sub.id)
-    return
-  }
-
-  // Never let Stripe overwrite a firm you comped by hand.
-  const [existing] = await db
-    .select({ source: orgPlans.source })
-    .from(orgPlans)
-    .where(eq(orgPlans.orgId, orgId))
-    .limit(1)
-  if (existing?.source === 'comp') {
-    console.warn('Firm is comped, ignoring Stripe event for', orgId)
-    return
-  }
-
-  const isPro = PRO_STATUSES.includes(sub.status)
-  const values = {
-    plan: isPro ? 'pro' : 'free',
-    source: 'stripe',
-    stripeCustomerId:
-      typeof sub.customer === 'string' ? sub.customer : sub.customer.id,
-    stripeSubscriptionId: sub.id,
-    seats: isPro ? (sub.items.data[0]?.quantity ?? null) : null,
-    updatedAt: new Date(),
-  }
-
-  await db
-    .insert(orgPlans)
-    .values({ orgId, ...values })
-    .onConflictDoUpdate({ target: orgPlans.orgId, set: values }) // <-- makes the handler idempotent
-}
-
-/**
  *   The signature check (constructEvent): this URL is public, so anyone could POST “firm X paid” to it. Stripe signs every message using your whsec_ secret, and constructEvent recalculates the signature and refuses anything that doesn’t match. Without this check, the webhook would be a free “upgrade to Pro” button for anyone who found the URL.
  *   req.text(), not req.json(): the signature covers the exact bytes Stripe sent. Parsing and re-serialising the JSON could change spacing or key order, and the check would fail.
  *   It always fetches the subscription fresh (subscriptions.retrieve). Stripe doesn’t guarantee events arrive in order, and it retries failed ones. If an old “quantity 10” event arrived after a newer “quantity 15” one, using the event’s own data would roll the seats back. Asking Stripe for the current state each time makes the order irrelevant.
@@ -110,8 +81,6 @@ async function syncSubscription(subscriptionId: string) {
  *   A 200 for events we ignore, a 500 when something breaks: Stripe treats anything other than 2xx as “not delivered” and retries for up to a few days. So a temporary database hiccup heals itself on a retry.
  */
 
-
-
 /**
-  * proxy.ts uses clerkMiddleware() with no arguments, so this route is already reachable without signing in, the same as your cron route. That’s correct, because Stripe isn’t a signed-in user. The signature check is its protection instead.
+ * proxy.ts uses clerkMiddleware() with no arguments, so this route is already reachable without signing in, the same as your cron route. That’s correct, because Stripe isn’t a signed-in user. The signature check is its protection instead.
  */

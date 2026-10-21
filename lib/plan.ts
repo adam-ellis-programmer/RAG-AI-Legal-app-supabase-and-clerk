@@ -11,9 +11,15 @@ export const PLANS = {
   pro: {
     label: 'Pro',
     questionsPerMonth: 2000,
-    includedSeats: 10, // must match tier 1 of the Stripe price
-    priceText: '£49.99 a month for up to 10 people, then £10 per extra person',
+    includedSeats: 5, // must match tier 1 of the Stripe price
+    flatFeePence: 12000, // tier 1 flat fee (£120)
+    extraSeatPence: 1000, // tier 2 price per extra seat (£10)
+    priceText: '£120 a month for up to 5 people, then £10 per extra person',
   },
+
+  // These are only for showing the price on your page.
+  // Stripe still does the real charging from its own price.
+  // As with includedSeats, keep them in step with Stripe if you ever change the price.
 } as const
 
 export type Plan = keyof typeof PLANS // 'free' | 'pro'
@@ -27,10 +33,11 @@ export async function getOrgPlan(orgId: string): Promise<Plan> {
   return row?.plan === 'pro' ? 'pro' : 'free'
 }
 
-// 
+//
 // getOrgPlan stays as it is, because the question cap only needs the plan name. This one is for pages that need everything.
 // Everything about a firm's plan, for the Plan page and checkout
 // includedSeats and priceText repeat what’s in Stripe, so if you ever change the Stripe price, update these too. The comment on includedSeats is there to remind you.
+// prettier-ignore
 export async function getOrgPlanDetails(orgId: string) {
   const [row] = await db.select().from(orgPlans).where(eq(orgPlans.orgId, orgId)).limit(1)
   return {
@@ -38,6 +45,10 @@ export async function getOrgPlanDetails(orgId: string) {
     source: row?.source ?? null, // 'stripe' | 'comp' | null
     seats: row?.seats ?? null,
     stripeCustomerId: row?.stripeCustomerId ?? null,
+
+    stripeSubscriptionId: row?.stripeSubscriptionId ?? null,
+    currentPeriodEnd: row?.currentPeriodEnd ?? null,
+    cancelAt: row?.cancelAt ?? null,
   }
 }
 

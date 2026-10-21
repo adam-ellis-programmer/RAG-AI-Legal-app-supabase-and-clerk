@@ -22,7 +22,7 @@ export default async function ClientsPage() {
   }
 
   const isDemo = isDemoOrg(orgId)
-  console.log(isDemo)
+
 
   // Tenant wall (layer 1): only this firm's clients.
   const rows = await db

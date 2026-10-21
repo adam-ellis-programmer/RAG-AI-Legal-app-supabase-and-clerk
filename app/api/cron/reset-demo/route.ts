@@ -89,6 +89,5 @@ export async function GET(req: Request) {
     }
   })
 
-  console.log('demo reset:', result)
   return Response.json({ ok: true, ...result })
 }

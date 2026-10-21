@@ -129,7 +129,7 @@ export async function updateClientDetails(
   // Comparing as strings works: YYYY-MM-DD sorts alphabetically in date order.
   const dateOfBirth = field(formData, 'dateOfBirth')
   if (dateOfBirth && dateOfBirth > new Date().toISOString().slice(0, 10)) {
-    console.log('VALUES: ', values)
+
 
     return { error: 'Date of birth cannot be in the future.', values }
   }

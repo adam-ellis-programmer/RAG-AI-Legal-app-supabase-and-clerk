@@ -272,6 +272,12 @@ export const orgPlans = pgTable('org_plans', {
   note: text('note'), // why it was comped, e.g. "Adam's test firm"
   stripeCustomerId: text('stripe_customer_id'),
   stripeSubscriptionId: text('stripe_subscription_id'),
+  
+  // When the current paid month ends (the next renewal date).
+  currentPeriodEnd: timestamp('current_period_end', { withTimezone: true }),
+  // Set when the firm has cancelled: they keep Pro until this date, then drop to Free.
+  cancelAt: timestamp('cancel_at', { withTimezone: true }),
+
   seats: integer('seats'), // seats paid for in Stripe; null for comped/free firms
   updatedAt: timestamp('updated_at', { withTimezone: true })
     .defaultNow()
