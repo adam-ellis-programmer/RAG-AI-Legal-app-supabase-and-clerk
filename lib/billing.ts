@@ -7,7 +7,8 @@ import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { orgPlans } from '@/lib/schema'
 import { getStripe } from '@/lib/stripe'
-
+import { setOrgSeatLimit } from './seats'
+import { PLANS } from './plan'
 // Statuses where the firm keeps Pro. 'past_due' = a renewal failed and Stripe is retrying.
 const PRO_STATUSES: Stripe.Subscription.Status[] = [
   'active',
@@ -87,6 +88,21 @@ export async function syncSubscription(subscriptionId: string) {
     .insert(orgPlans)
     .values({ orgId, ...values })
     .onConflictDoUpdate({ target: orgPlans.orgId, set: values })
+
+  // Keep Clerk's member limit in step with what they pay for
+  /**
+    * Why after the upsert: the database is the thing your app reads, 
+    * so it’s written first. If the Clerk call fails, the function throws, 
+    * the webhook returns 500, and Stripe retries, so the limit catches up.
+    * 
+    * Why the comp guard still matters: syncSubscription returns 
+    * early for comped firms, so Stripe events can never shrink a 
+    * comped firm’s limit.
+   */
+  await setOrgSeatLimit(
+    orgId,
+    isPro ? (item.quantity ?? PLANS.pro.includedSeats) : PLANS.free.maxMembers,
+  )
 }
 
 /**

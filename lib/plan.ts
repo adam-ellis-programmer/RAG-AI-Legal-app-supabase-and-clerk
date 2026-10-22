@@ -5,7 +5,8 @@ import { db } from '@/lib/db'
 import { orgPlans } from '@/lib/schema'
 
 export const PLANS = {
-  free: { label: 'Free', questionsPerMonth: 50 },
+  free: { label: 'Free', questionsPerMonth: 50, maxMembers: 3 },
+  // limit for membsers on free tier
   // "Unlimited" in the marketing sense: a fair-use ceiling so one firm can't
   // run up an unbounded Anthropic/Voyage bill on a fixed monthly price.
   pro: {

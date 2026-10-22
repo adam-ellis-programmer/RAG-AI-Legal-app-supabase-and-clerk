@@ -19,6 +19,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 # CHECK STRIPE -- NPM RUN CHECK:STRIPE
 make notes for this 
 
+grep -rn "already pays through Stripe" . --exclude-dir=node_modules --exclude-dir=.next
 
 
 
