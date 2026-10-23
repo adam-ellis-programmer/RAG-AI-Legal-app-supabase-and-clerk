@@ -1,9 +1,11 @@
 // app/api/stripe/webhook/route.ts
-// Stripe calls this when something happens to a firm's subscription.
-// It catches every change, including ones made outside the app (renewals,
-// the period ending, failed payments, the Stripe dashboard or portal).
-// The plan actions also sync straight after a click, so the page is right
-// immediately; both use syncSubscription() in lib/billing.ts.
+// Stripe calls this whenever a subscription changes: from our app, the customer
+// portal, the Stripe dashboard, or Stripe itself (renewals, failed payments,
+// a cancellation reaching its end date).
+//
+// Our server actions also sync straight away so the page is right immediately.
+// This route is the safety net that catches everything else. Both call the same
+// syncSubscription(), which re-reads Stripe, so the order doesn't matter.
 
 import type Stripe from 'stripe'
 import { getStripe } from '@/lib/stripe'
