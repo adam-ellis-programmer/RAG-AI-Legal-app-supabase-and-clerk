@@ -17,12 +17,30 @@ const CLIENTS = [
     name: 'Mr and Mrs Hartley',
     createdBy: 'eleanor',
     daysAgo: 48,
+    details: {
+      dateOfBirth: null, // a couple, so no single date of birth
+      addressLine1: '14 Orchard Lane',
+      addressLine2: null,
+      town: 'Ashbury',
+      postcode: 'AB12 3CD',
+      phone: '01632 960 418', // Ofcom's range reserved for fiction: never a real number
+      email: 'r.hartley@example.com', // example.com is reserved for examples
+    },
   },
   {
     key: 'brookfield',
     name: 'Brookfield Farm Ltd',
     createdBy: 'daniel',
     daysAgo: 41,
+    details: {
+      dateOfBirth: null, // a company
+      addressLine1: 'Brookfield Farm',
+      addressLine2: 'Long Hedge Road',
+      town: 'Ashbury',
+      postcode: 'AB14 7EF',
+      phone: '01632 960 772',
+      email: 'office@brookfieldfarm.example.com',
+    },
   },
 ] as const
 
@@ -150,6 +168,7 @@ export type Cases = Record<
 
 export async function seedCases(people: People): Promise<Cases> {
   // 1. Clients
+
   const clientIds = {} as Record<ClientKey, string>
   for (const c of CLIENTS) {
     const [row] = await db
@@ -157,10 +176,12 @@ export async function seedCases(people: People): Promise<Cases> {
       .values({
         orgId: ORG_ID,
         name: c.name,
+        ...c.details,
         createdBy: people[c.createdBy],
         createdAt: daysAgo(c.daysAgo),
       })
       .returning({ id: clients.id })
+
     clientIds[c.key] = row.id
   }
 

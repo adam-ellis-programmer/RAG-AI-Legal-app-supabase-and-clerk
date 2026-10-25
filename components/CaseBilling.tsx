@@ -38,7 +38,7 @@ export function CaseBilling({
   const owed = charged - paid
 
   return (
-    <section id='billing' className='mt-8 border'>
+    <section id='billing' className='mt-8 '>
       <h2 className='mb-1 text-sm font-semibold text-slate-700'>Billing</h2>
       <p className='mb-3 text-xs text-slate-500'>
         Visible to case admins only.

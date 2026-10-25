@@ -12,6 +12,7 @@ import {
   date,
 } from 'drizzle-orm/pg-core'
 
+
 // lib/schema.ts — defines the documents table in TypeScript:
 // prettier-ignore
 export const documents = pgTable(

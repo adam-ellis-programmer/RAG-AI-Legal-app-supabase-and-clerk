@@ -9,14 +9,14 @@ import {
   demoUsage,
   documentFiles,
   documents,
+  invoices,
   matterMembers,
   matters,
   queries,
 } from '@/lib/schema'
 import { ORG_ID } from './config'
 
-console.table({ORG_ID});
-
+console.table({ ORG_ID })
 
 export async function clearDemo() {
   // One transaction: either every delete succeeds, or none of them happen.
@@ -49,6 +49,12 @@ export async function clearDemo() {
       .delete(matterMembers)
       .where(inArray(matterMembers.matterId, demoMatters))
       .returning({ id: matterMembers.id })
+
+    const invs = await tx
+      .delete(invoices)
+      .where(eq(invoices.orgId, ORG_ID))
+      .returning({ id: invoices.id })
+
     const cases = await tx
       .delete(matters)
       .where(eq(matters.orgId, ORG_ID))
@@ -66,6 +72,7 @@ export async function clearDemo() {
       documents: chunks.length,
       document_files: files.length,
       matter_members: members.length,
+      invoices: invs.length,
       matters: cases.length,
       clients: cls.length,
       demo_usage: usage.length,
@@ -75,3 +82,12 @@ export async function clearDemo() {
   console.log('Cleared demo firm rows:')
   console.table(counts)
 }
+
+/**
+ * invoice added notes:
+ * Why do this even though there’s an onDelete: 'cascade'?
+ * The cascade would delete them, but then the count table
+ * wouldn’t show it, and your file’s own rule is “no step
+ * relies on a cascade happening somewhere else”. Deleting
+ * explicitly keeps the clear-up honest.
+ */

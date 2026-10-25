@@ -93,6 +93,8 @@ export default async function ClientDetailPage({
           {client.name}
         </h1>
         <p className='mt-1 text-sm text-slate-500'>Cases for this client.</p>
+        
+        <button className='mt-2 cursor-pointer'>change layout</button>
       </div>
 
       {canSeeDetails ? (

@@ -30,7 +30,7 @@ export async function syncSubscription(subscriptionId: string) {
   // Asks Stripe for the subscription as it is right now: its status, seats, dates, cancellation, everything
   const sub = await getStripe().subscriptions.retrieve(subscriptionId)
 
-  console.log('LOGGED SUB: ', sub)
+  // console.log('LOGGED SUB: ', sub)
 
   // Which firm is this?
   const orgId = sub.metadata.orgId
