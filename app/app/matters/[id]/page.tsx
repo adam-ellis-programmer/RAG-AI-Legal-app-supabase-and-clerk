@@ -8,7 +8,7 @@ import { CaseQuery } from '@/components/CaseQuery'
 import { clients, matterMembers, documentFiles, queries, auditLogs, invoices } from '@/lib/schema' // add invoices
 import { CaseBilling } from '@/components/CaseBilling'
 import { CaseUpload } from '@/components/CaseUpload'
-import { CaseLayout } from '@/components/CaseLayout'  
+import { PageLayout } from '@/components/PageLayout'
 
 // prettier-ignore
 import { CaseActivity, ACTIVITY_FILTERS, type ActivityFilter } from '@/components/CaseActivity'
@@ -150,7 +150,8 @@ export default async function MatterPage({
   )
 
   return (
-    <CaseLayout
+    <PageLayout
+      storageKey='case-layout'
       header={
         <>
           <Link
@@ -161,7 +162,9 @@ export default async function MatterPage({
           </Link>
 
           <div className='mt-2 flex flex-wrap items-center gap-3'>
-            <h1 className='font-serif text-2xl text-slate-900'>{matter.title}</h1>
+            <h1 className='font-serif text-2xl text-slate-900'>
+              {matter.title}
+            </h1>
             {/* prettier-ignore */}
             <span className={`rounded-full px-2 py-0.5 text-xs ${isOpen ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
               {matter.status}
@@ -221,7 +224,9 @@ export default async function MatterPage({
                   <span className='font-medium text-slate-900'>
                     {person?.name ?? 'Former firm member'}
                     {member.userId === userId && (
-                      <span className='ml-1 font-normal text-slate-400'>(you)</span>
+                      <span className='ml-1 font-normal text-slate-400'>
+                        (you)
+                      </span>
                     )}
                   </span>
                   <span className='block text-xs text-slate-400'>
@@ -321,7 +326,9 @@ export default async function MatterPage({
         <div className='mb-3 flex items-center justify-between'>
           <h2 className='text-sm font-semibold text-slate-700'>
             Case documents{' '}
-            <span className='font-normal text-slate-400'>({caseDocs.length})</span>
+            <span className='font-normal text-slate-400'>
+              ({caseDocs.length})
+            </span>
           </h2>
           {isOpen && !isDemo && <CaseUpload matterId={matter.id} />}
         </div>
@@ -330,7 +337,8 @@ export default async function MatterPage({
           <div className='rounded-xl border border-dashed border-slate-300 p-8 text-center'>
             <p className='text-slate-500'>No documents on this case yet.</p>
             <p className='mt-1 text-xs text-slate-400'>
-              Upload the client&apos;s files (deeds, contracts, correspondence) as PDFs.
+              Upload the client&apos;s files (deeds, contracts, correspondence)
+              as PDFs.
             </p>
           </div>
         ) : (
@@ -345,7 +353,9 @@ export default async function MatterPage({
                   prefetch={false}
                   className='flex min-w-0 flex-1 items-center justify-between gap-3 rounded-xl p-4 hover:bg-slate-50'
                 >
-                  <span className='truncate font-medium text-slate-900'>{doc.source}</span>
+                  <span className='truncate font-medium text-slate-900'>
+                    {doc.source}
+                  </span>
                   <span className='shrink-0 text-xs text-slate-400'>
                     {byUserId.get(doc.uploadedBy ?? '')?.name ?? 'Unknown'} ·{' '}
                     {new Date(doc.createdAt).toLocaleDateString()}
@@ -372,7 +382,9 @@ export default async function MatterPage({
       {/* ----------------- Ask about this case ----------------- grid item 3 */}
       {isOpen && (
         <section>
-          <h2 className='mb-3 text-sm font-semibold text-slate-700'>Ask about this case</h2>
+          <h2 className='mb-3 text-sm font-semibold text-slate-700'>
+            Ask about this case
+          </h2>
           <CaseQuery
             matterId={matter.id}
             caseDocs={caseDocs.map((d) => ({ id: d.id, source: d.source }))}
@@ -401,7 +413,9 @@ export default async function MatterPage({
                 >
                   <span className='line-clamp-2 text-sm text-slate-900'>
                     {h.threadId && h.threadId !== h.id && (
-                      <span className='mr-1 text-xs text-slate-400'>Follow-up:</span>
+                      <span className='mr-1 text-xs text-slate-400'>
+                        Follow-up:
+                      </span>
                     )}
                     {h.question}
                   </span>
@@ -420,19 +434,32 @@ export default async function MatterPage({
 
       {/* ----------------- Billing: case admins only ----------------- grid item 5 */}
       {isAdmin && (
-        <CaseBilling matterId={matter.id} invoices={caseInvoices} canEdit={canEdit} />
+        <CaseBilling
+          matterId={matter.id}
+          invoices={caseInvoices}
+          canEdit={canEdit}
+        />
       )}
 
       {/* ----------------- Case activity: case admins only, full width ----------------- grid item 6 */}
+
       {isAdmin && (
         <section id='activity' className='scroll-mt-6 lg:col-span-3'>
-          <h2 className='mb-1 text-sm font-semibold text-slate-700'>Case activity</h2>
+          <h2 className='mb-1 text-sm font-semibold text-slate-700'>
+            Case activity
+          </h2>
           <p className='mb-3 text-xs text-slate-500'>
-            Who opened, uploaded and asked what on this case. Visible to case admins only.
+            Who opened, uploaded and asked what on this case. Visible to case
+            admins only.
           </p>
-          <CaseActivity matterId={id} entries={activity} names={names} filter={filter} />
+          <CaseActivity
+            matterId={id}
+            entries={activity}
+            names={names}
+            filter={filter}
+          />
         </section>
       )}
-    </CaseLayout>
+    </PageLayout>
   )
 }

@@ -1,26 +1,35 @@
-// components/CaseLayout.tsx
+
+// components/PageLayout.tsx
 'use client'
-// The case page's layout switch: a three-column grid or a single column.
-// `header` sits on top beside the button; `children` (the sections) go in the grid.
+// Client wrapper for server-rendered content: the page fetches the data and renders
+// `header` and the sections (children); this only adds the grid / single-column toggle.
+// Used by the case page and the client page, each remembering its own choice.
 import { useEffect, useState, type ReactNode } from 'react'
 
 type Layout = 'grid' | 'single'
-const STORAGE_KEY = 'case-layout'
 
-export function CaseLayout({ header, children }: { header: ReactNode; children: ReactNode }) {
+export function PageLayout({
+  storageKey,
+  header,
+  children,
+}: {
+  storageKey: string // e.g. 'case-layout', 'client-layout'
+  header: ReactNode
+  children: ReactNode
+}) {
   const [layout, setLayout] = useState<Layout>('grid')
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY)
+      const saved = localStorage.getItem(storageKey)
       if (saved === 'grid' || saved === 'single') setLayout(saved)
     } catch {}
-  }, [])
+  }, [storageKey])
 
   function toggle() {
     const next = layout === 'grid' ? 'single' : 'grid'
     setLayout(next)
-    try { localStorage.setItem(STORAGE_KEY, next) } catch {}
+    try { localStorage.setItem(storageKey, next) } catch {}
   }
 
   const isGrid = layout === 'grid'
@@ -38,8 +47,8 @@ export function CaseLayout({ header, children }: { header: ReactNode; children: 
         </button>
       </div>
 
-      <div className={isGrid ? 'space-y-8 lg:grid lg:grid-cols-3 lg:items-start lg:gap-6 lg:space-y-0 ' : 'space-y-8'}>
-        {children} 
+      <div className={isGrid ? 'space-y-8 lg:grid lg:grid-cols-3 lg:items-start lg:gap-6 lg:space-y-0' : 'space-y-8'}>
+        {children}
       </div>
     </main>
   )
