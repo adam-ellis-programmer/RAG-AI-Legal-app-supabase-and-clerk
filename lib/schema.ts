@@ -8,10 +8,10 @@ import {
   vector,
   index,
   uniqueIndex,
+  primaryKey,
   jsonb,
   date,
 } from 'drizzle-orm/pg-core'
-
 
 // lib/schema.ts — defines the documents table in TypeScript:
 // prettier-ignore
@@ -273,7 +273,7 @@ export const orgPlans = pgTable('org_plans', {
   note: text('note'), // why it was comped, e.g. "Adam's test firm"
   stripeCustomerId: text('stripe_customer_id'),
   stripeSubscriptionId: text('stripe_subscription_id'),
-  
+
   // When the current paid month ends (the next renewal date).
   currentPeriodEnd: timestamp('current_period_end', { withTimezone: true }),
   // Set when the firm has cancelled: they keep Pro until this date, then drop to Free.
@@ -284,3 +284,78 @@ export const orgPlans = pgTable('org_plans', {
     .defaultNow()
     .notNull(),
 })
+
+
+
+
+// ---------------- Firm chat (people-to-people, not the AI assistant) ----------------
+
+// One row per chat. A case chat belongs to a matter; a direct message doesn't.
+export const chatConversations = pgTable(
+  'chat_conversations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    orgId: text('org_id').notNull(),
+    type: text('type', { enum: ['case', 'direct'] }).notNull(),
+    // Case chats: which case. Members come from matterMembers, so the chat
+    // always follows the case team (and the ethical wall) automatically.
+    matterId: uuid('matter_id').references(() => matters.id, { onDelete: 'cascade' }),
+    // Direct messages: both userIds sorted and joined ("user_a:user_b"),
+    // so two people can only ever have one DM per firm.
+    dmKey: text('dm_key'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index('chat_conversations_org_id_idx').on(t.orgId),
+    uniqueIndex('chat_conversations_matter_id_unique').on(t.matterId),
+    uniqueIndex('chat_conversations_org_dm_key_unique').on(t.orgId, t.dmKey),
+  ],
+)
+
+// Who's in a direct message. Case chats don't use this table.
+export const chatMembers = pgTable(
+  'chat_members',
+  {
+    conversationId: uuid('conversation_id')
+      .notNull()
+      .references(() => chatConversations.id, { onDelete: 'cascade' }),
+    userId: text('user_id').notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.conversationId, t.userId] }),
+    index('chat_members_user_id_idx').on(t.userId), // "my DMs" lookups
+  ],
+)
+
+export const chatMessages = pgTable(
+  'chat_messages',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    orgId: text('org_id').notNull(),
+    conversationId: uuid('conversation_id')
+      .notNull()
+      .references(() => chatConversations.id, { onDelete: 'cascade' }),
+    senderId: text('sender_id').notNull(),
+    body: text('body').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    // Soft delete: shown as "Message removed", but kept, because messages are records.
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (t) => [
+    // "Latest 50 in this conversation" and "unread since…" both use this
+    index('chat_messages_conversation_created_idx').on(t.conversationId, t.createdAt),
+  ],
+)
+
+// When each person last read each conversation: unread = messages after this.
+export const chatReads = pgTable(
+  'chat_reads',
+  {
+    conversationId: uuid('conversation_id')
+      .notNull()
+      .references(() => chatConversations.id, { onDelete: 'cascade' }),
+    userId: text('user_id').notNull(),
+    lastReadAt: timestamp('last_read_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.conversationId, t.userId] })],
+)

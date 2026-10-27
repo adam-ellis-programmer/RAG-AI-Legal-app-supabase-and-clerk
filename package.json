@@ -12,7 +12,9 @@
     "comp-org": "tsx --env-file=.env.local scripts/comp-org.ts",
     "reset-billing": "tsx --env-file=.env.local scripts/reset-billing.ts",
     "check:stripe": "tsx --env-file=.env.local scripts/check-stripe.ts",
-    "stripe:listen": "stripe listen --events checkout.session.completed,customer.subscription.updated,customer.subscription.deleted --forward-to localhost:3000/api/stripe/webhook"
+    "stripe:listen": "stripe listen --events checkout.session.completed,customer.subscription.updated,customer.subscription.deleted --forward-to localhost:3000/api/stripe/webhook",
+    "chat:dev": "tsx watch --env-file=.env.local chat-server/index.ts",
+    "db:push": "npx drizzle-kit push"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.21",
@@ -24,6 +26,8 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-markdown": "^10.1.0",
+    "socket.io": "^4.8.4",
+    "socket.io-client": "^4.8.4",
     "stripe": "^23.0.0",
     "unpdf": "^1.8.0",
     "voyageai": "^0.4.0"
