@@ -13,8 +13,15 @@ import {
 } from 'react'
 import { io, type Socket } from 'socket.io-client'
 import { useAuth } from '@clerk/nextjs'
+import type {
+  ClientToServerEvents,
+  ServerToClientEvents,
+} from '@/lib/chat-events'
 
-const ChatSocketContext = createContext<Socket | null>(null)
+// Note the order for the browser: first what we LISTEN to, then what we SEND.
+export type ChatSocket = Socket<ServerToClientEvents, ClientToServerEvents>
+
+const ChatSocketContext = createContext<ChatSocket | null>(null)
 
 /** The shared chat socket, or null while not connected. */
 export function useChatSocket() {
@@ -23,7 +30,7 @@ export function useChatSocket() {
 
 export function ChatConnection({ children }: { children: ReactNode }) {
   const { isSignedIn, orgId, getToken } = useAuth()
-  const [socket, setSocket] = useState<Socket | null>(null)
+  const [socket, setSocket] = useState<ChatSocket | null>(null)
 
   // Always call the latest getToken without making it a reason to reconnect.
   const getTokenRef = useRef(getToken)
@@ -35,13 +42,13 @@ export function ChatConnection({ children }: { children: ReactNode }) {
     const url = process.env.NEXT_PUBLIC_CHAT_URL
     if (!isSignedIn || !orgId || !url) return
 
-    const s = io(url, {
+    const s: ChatSocket = io(url, {
       // Called on every (re)connect, so the server always gets a FRESH token
       // (Clerk tokens only last about a minute).
       auth: (cb) => {
         getTokenRef.current().then((token) => cb({ token }))
       },
-      transports: ['websocket'],
+      transports: ['websocket'], //  ← remove: the default (polling, then upgrade) works on more networks
     })
 
     s.on('connect', () => console.log('[chat] connected', s.id))

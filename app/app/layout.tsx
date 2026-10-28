@@ -49,6 +49,14 @@ export default async function AppLayout({
                 >
                   Documents
                 </Link>
+
+                <Link
+                  href='/app/chat'
+                  className='text-slate-600 transition hover:text-slate-900'
+                >
+                  Chat
+                </Link>
+
                 <Link
                   className='text-slate-600 transition hover:text-slate-900'
                   href='/app/plan'

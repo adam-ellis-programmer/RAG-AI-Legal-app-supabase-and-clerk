@@ -8,7 +8,8 @@
 // anything Next-only, or the chat server can't use it.
 import { and, eq } from 'drizzle-orm'
 import type { db as AppDb } from '@/lib/db'
-import { chatConversations, chatMembers, matterMembers, matters } from '@/lib/schema'
+import { chatConversations, chatMembers, chatMessages, matterMembers, matters } from '@/lib/schema'
+import type { ChatMessage } from '@/lib/chat-events'
 
 type Db = typeof AppDb
 export type ChatConversation = typeof chatConversations.$inferSelect
@@ -64,3 +65,43 @@ export async function getAccessibleConversation(
   const people = await conversationRecipients(db, c)
   return people.includes(userId) ? c : null
 }
+
+// ---------   
+
+/** A database row → what we send to browsers. Removed messages lose their text here. */
+// prettier-ignore
+export function toChatMessage(row: typeof chatMessages.$inferSelect): ChatMessage {
+  return {
+    id: row.id,
+    conversationId: row.conversationId,
+    senderId: row.senderId,
+    body: row.deletedAt ? '' : row.body,
+    removed: row.deletedAt !== null,
+    createdAt: row.createdAt.toISOString(),
+  }
+}
+
+
+/** Why you can't post in this conversation, or null if you can. Read-only isn't no-access. */
+// prettier-ignore
+export async function postingBlockedReason(db: Db, c: ChatConversation): Promise<string | null> {
+  // Checked with the env var directly: lib/demo imports Next-only code.
+  if (process.env.DEMO_ORG_ID && c.orgId === process.env.DEMO_ORG_ID) {
+    return 'Chat is read-only in the demo firm.'
+  }
+  if (c.type === 'case' && c.matterId) {
+    const [m] = await db.select({ status: matters.status }).from(matters).where(eq(matters.id, c.matterId)).limit(1)
+    if (m && m.status !== 'open') return `This case is ${m.status}, so its chat is read-only.`
+  }
+  return null
+}
+
+
+
+
+/**
+  * Again, one rule, two users: the page uses postingBlockedReason 
+  * to hide the input box, and the server uses it to refuse the message.
+  * The page is just for a friendly display; the server check is the real lock. 
+  * Someone could always send a message from the browser console, but the server would still refuse it.
+ */
