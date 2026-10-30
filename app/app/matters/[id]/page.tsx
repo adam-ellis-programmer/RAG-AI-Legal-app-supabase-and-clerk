@@ -194,6 +194,14 @@ export default async function MatterPage({
             <p className='mt-1 text-sm text-slate-400'>{matter.reference}</p>
           )}
 
+          <Link
+            href={`/app/chat/case/${matter.id}`}
+            prefetch={false}
+            className='mt-2 inline-block text-sm text-slate-600 underline hover:text-slate-900'
+          >
+            Open case chat →
+          </Link>
+
           {!isOpen &&
             // prettier-ignore
             <p className='mt-4 rounded-lg bg-slate-50 p-3 text-sm text-slate-600 ring-1 ring-slate-200'>

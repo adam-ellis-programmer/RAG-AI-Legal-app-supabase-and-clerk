@@ -3,7 +3,7 @@
 // One conversation's messages. History arrives from the server (props);
 // new messages arrive live over the shared socket.
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { useChatSocket } from '@/components/ChatConnection'
+import { useChat, useChatSocket } from '@/components/ChatConnection'
 import { MAX_MESSAGE_LENGTH, type ChatMessage } from '@/lib/chat-events'
 
 const timeFormat = new Intl.DateTimeFormat('en-GB', {
@@ -27,7 +27,8 @@ export function ChatThread({
   names: Record<string, string>
   blockedReason: string | null
 }) {
-  const socket = useChatSocket()
+  const { socket, setOpenConversation, markRead } = useChat()
+
   const [messages, setMessages] = useState(initialMessages)
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
@@ -36,20 +37,33 @@ export function ChatThread({
 
   // Add a message unless we already have it (the sender gets it twice: the ack AND the broadcast).
   function addMessage(m: ChatMessage) {
-    setMessages((prev) => (prev.some((p) => p.id === m.id) ? prev : [...prev, m]))
+    setMessages((prev) =>
+      prev.some((p) => p.id === m.id) ? prev : [...prev, m],
+    )
   }
+
+  // While this chat is on screen, it's "open": mark it read, and keep new messages from counting as unread.
+  useEffect(() => {
+    setOpenConversation(conversationId)
+    markRead(conversationId)
+    return () => setOpenConversation(null)
+  }, [conversationId, setOpenConversation, markRead])
 
   // Listen for new messages in THIS conversation.
   useEffect(() => {
     if (!socket) return
+
     const onNew = (m: ChatMessage) => {
-      if (m.conversationId === conversationId) addMessage(m)
+      if (m.conversationId !== conversationId) return
+      addMessage(m)
+      if (m.senderId !== currentUserId) markRead(conversationId)
     }
+
     socket.on('message:new', onNew)
     return () => {
       socket.off('message:new', onNew) // stop listening when you leave this conversation
     }
-  }, [socket, conversationId])
+  }, [socket, conversationId, currentUserId, markRead])
 
   // Keep the newest message in view.
   useEffect(() => {
@@ -65,25 +79,35 @@ export function ChatThread({
     setError(null)
 
     // timeout: if the server never replies (offline, server down), say so after 10s.
-    socket.timeout(10_000).emit('message:send', { conversationId, body }, (err, res) => {
-      setSending(false)
-      if (err) return setError('No reply from the chat server. Check your connection.')
-      if (!res.ok) return setError(res.error)
-      setDraft('')
-      addMessage(res.message)
-    })
+    socket
+      .timeout(10_000)
+      .emit('message:send', { conversationId, body }, (err, res) => {
+        setSending(false)
+        if (err)
+          return setError(
+            'No reply from the chat server. Check your connection.',
+          )
+        if (!res.ok) return setError(res.error)
+        setDraft('')
+        addMessage(res.message)
+      })
   }
 
   return (
     <div className='flex min-h-0 flex-1 flex-col'>
       <div ref={listRef} className='h-[55vh] space-y-3 overflow-y-auto p-4'>
         {messages.length === 0 && (
-          <p className='text-center text-sm text-slate-400'>No messages yet. Say hello.</p>
+          <p className='text-center text-sm text-slate-400'>
+            No messages yet. Say hello.
+          </p>
         )}
         {messages.map((m) => {
           const mine = m.senderId === currentUserId
           return (
-            <div key={m.id} className={`flex flex-col ${mine ? 'items-end' : 'items-start'}`}>
+            <div
+              key={m.id}
+              className={`flex flex-col ${mine ? 'items-end' : 'items-start'}`}
+            >
               <span className='mb-0.5 text-xs text-slate-400'>
                 {mine ? 'You' : (names[m.senderId] ?? 'Former firm member')} ·{' '}
                 {timeFormat.format(new Date(m.createdAt))}
@@ -105,7 +129,9 @@ export function ChatThread({
       </div>
 
       {blockedReason ? (
-        <p className='border-t border-slate-200 p-3 text-center text-sm text-slate-500'>{blockedReason}</p>
+        <p className='border-t border-slate-200 p-3 text-center text-sm text-slate-500'>
+          {blockedReason}
+        </p>
       ) : (
         <form onSubmit={send} className='border-t border-slate-200 p-3'>
           {error && <p className='mb-2 text-sm text-red-600'>{error}</p>}

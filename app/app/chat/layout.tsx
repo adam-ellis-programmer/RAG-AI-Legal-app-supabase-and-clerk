@@ -15,6 +15,10 @@ import {
 import { getOrgMembers } from '@/lib/matter-access'
 import { ChatListLink } from '@/components/ChatListLink'
 
+import { SubmitButton } from '@/components/SubmitButton'
+import { isDemoOrg } from '@/lib/demo'
+import { startDirectMessage } from './actions'
+
 export default async function ChatLayout({
   children,
 }: {
@@ -64,6 +68,10 @@ export default async function ChatLayout({
 
   const nameOf = new Map(orgMembers.map((m) => [m.userId, m.name]))
 
+  // People you could message: everyone in the firm except you.
+  const others = orgMembers.filter((m) => m.userId !== userId)
+  const isDemo = isDemoOrg(orgId)
+
   return (
     <main className='mx-auto grid max-w-7xl gap-6 px-6 py-10 lg:grid-cols-[280px_1fr]'>
       <aside className='space-y-6'>
@@ -88,6 +96,7 @@ export default async function ChatLayout({
                         ? `/app/chat/${c.conversationId}`
                         : `/app/chat/case/${c.matterId}`
                     }
+                    conversationId={c.conversationId ?? undefined}
                   >
                     {c.title}
                   </ChatListLink>
@@ -109,13 +118,44 @@ export default async function ChatLayout({
                 const otherId = d.dmKey?.split(':').find((id) => id !== userId)
                 return (
                   <li key={d.conversationId}>
-                    <ChatListLink href={`/app/chat/${d.conversationId}`}>
+                    <ChatListLink
+                      href={`/app/chat/${d.conversationId}`}
+                      conversationId={d.conversationId}
+                    >
                       {(otherId && nameOf.get(otherId)) ?? 'Former firm member'}
                     </ChatListLink>
                   </li>
                 )
               })}
             </ul>
+          )}
+
+          {/* ------ added in for direct messages ------- */}
+          {/* It’s a plain server form, the same pattern as “Add to case”, with no client JavaScript needed. */}
+          {!isDemo && others.length > 0 && (
+            <form action={startDirectMessage} className='mt-3 flex gap-2'>
+              <select
+                name='userId'
+                required
+                defaultValue=''
+                className='min-w-0 flex-1 rounded-md border border-slate-300 px-2 py-1.5 text-sm'
+              >
+                <option value='' disabled>
+                  New message…
+                </option>
+                {others.map((m) => (
+                  <option key={m.userId} value={m.userId}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+              <SubmitButton
+                pendingText='…'
+                className='rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800'
+              >
+                Message
+              </SubmitButton>
+            </form>
           )}
         </section>
       </aside>

@@ -1,11 +1,14 @@
 // app/app/layout.tsx
 import Link from 'next/link'
 import { auth } from '@clerk/nextjs/server'
-
 import { OrganizationSwitcher, SignOutButton, UserButton } from '@clerk/nextjs'
 import { isDemoOrg } from '@/lib/demo'
-
 import { ChatConnection } from '@/components/ChatConnection'
+
+
+import { db } from '@/lib/db'
+import { myConversationIds, unreadCounts } from '@/lib/chat-access'
+import { ChatBadge } from '@/components/ChatBadge'
 
 // once we are on the app page with uploads etc
 // we have a different LAYOUT to all the other
@@ -15,11 +18,15 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { orgId } = await auth.protect()
+  const { orgId, userId } = await auth.protect()
   const isDemo = isDemoOrg(orgId)
 
+    // Your chats and unread counts, for the badge and live updates.
+  const conversationIds = orgId ? await myConversationIds(db, userId, orgId) : []
+  const initialUnread = await unreadCounts(db, userId, conversationIds)
+
   return (
-    <ChatConnection>
+     <ChatConnection initialUnread={initialUnread} conversationIds={conversationIds}>
       <div className='flex min-h-screen flex-col'>
         <header className='sticky top-0 z-50 border-b border-slate-200 bg-white'>
           <div className='mx-auto flex h-16 max-w-5xl items-center justify-between px-6'>
@@ -52,9 +59,10 @@ export default async function AppLayout({
 
                 <Link
                   href='/app/chat'
-                  className='text-slate-600 transition hover:text-slate-900'
+                  className='flex items-center text-slate-600 transition hover:text-slate-900'
                 >
                   Chat
+                  <ChatBadge />
                 </Link>
 
                 <Link
