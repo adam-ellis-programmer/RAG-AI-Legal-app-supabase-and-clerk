@@ -18,6 +18,7 @@ import { ChatListLink } from '@/components/ChatListLink'
 import { SubmitButton } from '@/components/SubmitButton'
 import { isDemoOrg } from '@/lib/demo'
 import { startDirectMessage } from './actions'
+import { OnlineDot } from '@/components/OnlineDot'
 
 export default async function ChatLayout({
   children,
@@ -118,11 +119,11 @@ export default async function ChatLayout({
                 const otherId = d.dmKey?.split(':').find((id) => id !== userId)
                 return (
                   <li key={d.conversationId}>
-                    <ChatListLink
-                      href={`/app/chat/${d.conversationId}`}
-                      conversationId={d.conversationId}
-                    >
-                      {(otherId && nameOf.get(otherId)) ?? 'Former firm member'}
+                    <ChatListLink href={`/app/chat/${d.conversationId}`} conversationId={d.conversationId}>
+                      <span className='inline-flex items-center gap-2'>
+                        {otherId && <OnlineDot userId={otherId} />}
+                        {(otherId && nameOf.get(otherId)) ?? 'Former firm member'}
+                      </span>
                     </ChatListLink>
                   </li>
                 )

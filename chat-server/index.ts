@@ -21,6 +21,8 @@ import {
   type ServerToClientEvents,
 } from '@/lib/chat-events'
 
+import { addSocket, onlineIn, removeSocket } from './presence'
+
 interface InterServerEvents {}
 interface SocketData {
   userId: string
@@ -94,6 +96,13 @@ io.on('connection', (socket) => {
   // each message is sent to the current members' user rooms.
   socket.join(`user:${userId}`)
   socket.join(`org:${orgId}`)
+
+  // Presence: tell the firm if you've just come online; otherwise just tell this
+  // new socket who's around.
+  // prettier-ignore
+  if (addSocket(orgId, userId)) io.to(`org:${orgId}`).emit('presence', onlineIn(orgId))
+  else socket.emit('presence', onlineIn(orgId))
+
   console.log(`[chat] connected ${userId} (firm ${orgId}) socket ${socket.id}`)
 
   // ===== ADDED IN AFTER START =========================================================================================
@@ -158,9 +167,14 @@ io.on('connection', (socket) => {
   })
   // ===== ADDED IN AFTER END =========================================================================================
 
+  // prettier-ignore
   socket.on('disconnect', (reason) => {
     console.log(`[chat] disconnected ${userId}: ${reason}`)
+    if (removeSocket(orgId, userId)) io.to(`org:${orgId}`).emit('presence', onlineIn(orgId))
   })
+
+  // added in when we built the connection dots:
+  //  Why only on changes: opening a third tab doesn’t change who’s online, so there’s no point messaging the whole firm. The new tab just gets the current list for itself.
 })
 
 httpServer.listen(PORT, () => console.log(`[chat] listening on :${PORT}`))

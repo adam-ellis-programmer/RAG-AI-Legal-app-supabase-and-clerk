@@ -27,9 +27,10 @@ export type ChatSocket = Socket<ServerToClientEvents, ClientToServerEvents>
 
 type ChatState = {
   socket: ChatSocket | null
-  unread: Record<string, number> // conversationId → unread count
+  unread: Record<string, number>
   totalUnread: number
-  setOpenConversation: (id: string | null) => void // which chat is on screen right now
+  online: Set<string> // userIds in the app right now
+  setOpenConversation: (id: string | null) => void
   markRead: (id: string) => void
 }
 
@@ -37,6 +38,7 @@ const ChatContext = createContext<ChatState>({
   socket: null,
   unread: {},
   totalUnread: 0,
+  online: new Set(),
   setOpenConversation: () => {},
   markRead: () => {},
 })
@@ -59,6 +61,8 @@ export function ChatConnection({
   const router = useRouter()
   const [socket, setSocket] = useState<ChatSocket | null>(null)
   const [unread, setUnread] = useState(initialUnread)
+
+  const [online, setOnline] = useState<Set<string>>(new Set())
 
   // A fresh count from the server (a full load or router.refresh) replaces ours.
   useEffect(() => {
@@ -124,17 +128,22 @@ export function ChatConnection({
       }))
     })
 
+
+    s.on('presence', (ids) => setOnline(new Set(ids)))
+
     setSocket(s)
     return () => {
       s.disconnect()
       setSocket(null)
+      setOnline(new Set()) // disconnected: we can't vouch for anyone being online
     }
   }, [isSignedIn, orgId, router])
 
   const totalUnread = Object.values(unread).reduce((sum, n) => sum + n, 0)
+  
   const value = useMemo(
-    () => ({ socket, unread, totalUnread, setOpenConversation, markRead }),
-    [socket, unread, totalUnread, setOpenConversation, markRead],
+    () => ({ socket, unread, totalUnread, online, setOpenConversation, markRead }),
+    [socket, unread, totalUnread, online, setOpenConversation, markRead],
   )
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>
