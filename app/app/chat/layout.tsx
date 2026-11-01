@@ -107,7 +107,7 @@ export default async function ChatLayout({
           )}
         </section>
 
-        <section>
+        <section >
           <h2 className='mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500'>
             Direct messages
           </h2>

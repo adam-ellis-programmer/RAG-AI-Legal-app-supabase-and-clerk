@@ -1,8 +1,9 @@
 // app/app/chat/page.tsx
 export default function ChatHome() {
   return (
-    <div className='flex h-full min-h-[50vh] items-center justify-center rounded-xl border border-dashed border-slate-300'>
-      <p className='text-sm text-slate-500'>Pick a conversation on the left.</p>
+    <div className='pt-10 text-center'>
+      <p className='text-sm text-slate-800'>Pick a conversation.</p>
+      <p className='text-sm text-slate-800'>on the left</p>
     </div>
   )
 }

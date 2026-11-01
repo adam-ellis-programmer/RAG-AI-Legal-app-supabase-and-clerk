@@ -17,6 +17,9 @@ import { getOrgMembers } from '@/lib/matter-access'
 import { ChatThread } from '@/components/ChatThread'
 import { OnlineDot } from '@/components/OnlineDot'
 
+import { isDemoOrg } from '@/lib/demo'
+import { startDirectMessage } from '@/app/app/chat/actions'
+
 export default async function ConversationPage({
   params,
 }: {
@@ -81,7 +84,7 @@ export default async function ConversationPage({
         <h3 className='mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500'>
           {conversation.type === 'case' ? 'Case team' : 'In this conversation'}
         </h3>
-        <ul className='space-y-1.5'>
+        {/* <ul className='space-y-1.5'>
           {people.map((id) => (
             <li key={id} className='flex items-center gap-2'>
               <OnlineDot userId={id} />
@@ -90,6 +93,46 @@ export default async function ConversationPage({
               </span>
             </li>
           ))}
+        </ul> */}
+
+        <ul className='space-y-0.5'>
+          {people.map((id) => {
+            const name =
+              id === userId ? 'You' : (names[id] ?? 'Former firm member')
+            // Teammates in a case chat can be messaged directly (not yourself,
+            // not someone who's left the firm, not in the demo).
+            const canMessage =
+              conversation.type === 'case' &&
+              id !== userId &&
+              Boolean(names[id]) &&
+              !isDemoOrg(orgId)
+
+            return (
+              <li key={id} >
+                {canMessage ? (
+                  <form action={startDirectMessage} className=''>
+                    <input type='hidden' name='userId' value={id} />
+                    <button
+                      type='submit'
+                      title={`Message ${name}`}
+                      className='group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-slate-100'
+                    >
+                      <OnlineDot userId={id} />
+                      <span className='truncate text-slate-700'>{name}</span>
+                      <span className='ml-auto text-xs text-slate-400 opacity-0 group-hover:opacity-100'>
+                        Message
+                      </span>
+                    </button>
+                  </form>
+                ) : (
+                  <div className='flex items-center gap-2 px-2 py-1.5'>
+                    <OnlineDot userId={id} />
+                    <span className='truncate text-slate-700'>{name}</span>
+                  </div>
+                )}
+              </li>
+            )
+          })}
         </ul>
         {conversation.matterId && (
           <Link
