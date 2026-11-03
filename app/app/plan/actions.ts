@@ -25,6 +25,8 @@ export async function startCheckout() {
   if (current.plan === 'pro') redirect('/app/plan')
 
   const appUrl = process.env.APP_URL
+  if (!appUrl) throw new Error('APP_URL is not set')
+
   const priceId = process.env.STRIPE_PRO_PRICE_ID
   if (!appUrl || !priceId) throw new Error('Stripe is not configured')
 

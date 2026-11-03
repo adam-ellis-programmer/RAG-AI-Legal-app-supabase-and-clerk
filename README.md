@@ -20,8 +20,21 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 make notes for this 
 
 grep -rn "already pays through Stripe" . --exclude-dir=node_modules --exclude-dir=.next
+grep -rn "APP_URL" . --exclude-dir=node_modules --exclude-dir=.next
 
 git status
 git check-ignore -v .env.local
 git log --all --oneline -- .env.local
 
+openssl rand -hex 32
+
+
+#1 stripe listen --print-secret
+#2 stripe listen \
+#   --events checkout.session.completed,customer.subscription.updated,customer.subscription.deleted \
+#   --forward-to localhost:3000/api/stripe/webhook
+
+
+
+
+ grep -rn "toLocaleDateString()\|toLocaleString()" app components

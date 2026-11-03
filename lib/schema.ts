@@ -359,3 +359,13 @@ export const chatReads = pgTable(
   },
   (t) => [primaryKey({ columns: [t.conversationId, t.userId] })],
 )
+
+
+
+// A firm's display preferences. No row = the defaults (UK format, London time).
+export const firmSettings = pgTable('firm_settings', {
+  orgId: text('org_id').primaryKey(),
+  locale: text('locale').notNull().default('en-GB'),
+  timeZone: text('time_zone').notNull().default('Europe/London'),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+})
