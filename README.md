@@ -21,5 +21,7 @@ make notes for this
 
 grep -rn "already pays through Stripe" . --exclude-dir=node_modules --exclude-dir=.next
 
-
+git status
+git check-ignore -v .env.local
+git log --all --oneline -- .env.local
 
