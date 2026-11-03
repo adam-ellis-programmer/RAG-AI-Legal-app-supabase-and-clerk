@@ -19,6 +19,7 @@ import { OnlineDot } from '@/components/OnlineDot'
 
 import { isDemoOrg } from '@/lib/demo'
 import { startDirectMessage } from '@/app/app/chat/actions'
+import { SubmitButton } from '@/components/SubmitButton'
 
 export default async function ConversationPage({
   params,
@@ -110,19 +111,18 @@ export default async function ConversationPage({
             return (
               <li key={id} >
                 {canMessage ? (
-                  <form action={startDirectMessage} className=''>
+                  <form action={startDirectMessage}>
                     <input type='hidden' name='userId' value={id} />
-                    <button
-                      type='submit'
-                      title={`Message ${name}`}
-                      className='group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-slate-100'
+                    <SubmitButton
+                      pendingText='Opening…'
+                      className='group flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-slate-100'
                     >
                       <OnlineDot userId={id} />
                       <span className='truncate text-slate-700'>{name}</span>
                       <span className='ml-auto text-xs text-slate-400 opacity-0 group-hover:opacity-100'>
                         Message
                       </span>
-                    </button>
+                    </SubmitButton>
                   </form>
                 ) : (
                   <div className='flex items-center gap-2 px-2 py-1.5'>
