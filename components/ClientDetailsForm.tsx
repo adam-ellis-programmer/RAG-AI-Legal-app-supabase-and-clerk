@@ -4,7 +4,10 @@
 'use client'
 
 import { useActionState } from 'react'
-import { updateClientDetails, type DetailsFormState } from '@/app/app/clients/[id]/actions'
+import {
+  updateClientDetails,
+  type DetailsFormState,
+} from '@/app/app/clients/[id]/actions'
 import { SubmitButton } from '@/components/SubmitButton'
 
 type Details = {
@@ -22,12 +25,16 @@ const input =
   'w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400'
 
 export function ClientDetailsForm({ client }: { client: Details }) {
-  const [state, formAction] = useActionState<DetailsFormState, FormData>(updateClientDetails, {})
+  const [state, formAction] = useActionState<DetailsFormState, FormData>(
+    updateClientDetails,
+    {},
+  )
 
   // After a mistake, show what they typed; otherwise the saved details.
   const v = (key: keyof Details) => state.values?.[key] ?? client[key] ?? ''
 
   return (
+    // prettier-ignore
     <form action={formAction} className='mt-3 grid gap-2 sm:grid-cols-2'>
       <input type='hidden' name='clientId' value={client.id} />
       <label className='text-xs text-slate-500 sm:col-span-2'>

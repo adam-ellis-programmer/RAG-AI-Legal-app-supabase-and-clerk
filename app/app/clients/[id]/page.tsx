@@ -11,6 +11,7 @@ import { createMatter } from './actions'
 import { SubmitButton } from '@/components/SubmitButton'
 import { isDemoOrg } from '@/lib/demo'
 import { ClientDetails } from '@/components/ClientDetails'
+import { getFirmFormat } from '@/lib/firm-settings'
 export default async function ClientDetailPage({
   params,
   searchParams,
@@ -24,6 +25,8 @@ export default async function ClientDetailPage({
   const { userId, orgId } = await auth()
   if (!userId || !orgId) notFound()
   const isDemo = isDemoOrg(orgId)
+  const fmt = await getFirmFormat(orgId)
+
   // Layer 1 (firm wall): the client must belong to this org.
   const [client] = await db
     .select()
@@ -103,7 +106,7 @@ export default async function ClientDetailPage({
     >
       {/* ----- Column 1: personal details (people on one of their cases only) ----- */}
       {canSeeDetails ? (
-        <ClientDetails client={client} canEdit={!isDemo} />
+        <ClientDetails client={client} canEdit={!isDemo} fmt={fmt} />
       ) : (
         <p className='rounded-lg bg-slate-50 p-3 text-sm text-slate-600 ring-1 ring-slate-200'>
           This client&apos;s personal details are visible only to people on one

@@ -6,13 +6,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useChat, useChatSocket } from '@/components/ChatConnection'
 import { MAX_MESSAGE_LENGTH, type ChatMessage } from '@/lib/chat-events'
 
-const timeFormat = new Intl.DateTimeFormat('en-GB', {
-  hour: '2-digit',
-  minute: '2-digit',
-  day: 'numeric',
-  month: 'short',
-  timeZone: 'Europe/London', // the same on the server and in the browser, so no hydration mismatch
-})
+import { formatDateTime, type DateFormat } from '@/lib/dates'
 
 export function ChatThread({
   conversationId,
@@ -20,12 +14,14 @@ export function ChatThread({
   currentUserId,
   names,
   blockedReason,
+  fmt,
 }: {
   conversationId: string
   initialMessages: ChatMessage[]
   currentUserId: string
   names: Record<string, string>
   blockedReason: string | null
+  fmt: DateFormat
 }) {
   const { socket, setOpenConversation, markRead } = useChat()
 
@@ -110,7 +106,7 @@ export function ChatThread({
             >
               <span className='mb-0.5 text-xs text-slate-400'>
                 {mine ? 'You' : (names[m.senderId] ?? 'Former firm member')} ·{' '}
-                {timeFormat.format(new Date(m.createdAt))}
+                {formatDateTime(m.createdAt, fmt)}
               </span>
               <p
                 className={`max-w-[75%] whitespace-pre-wrap break-words rounded-xl px-3 py-2 text-sm ${

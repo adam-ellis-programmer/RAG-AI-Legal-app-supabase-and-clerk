@@ -78,6 +78,14 @@ function formatDob(dob: string | null) {
   })
 }
 
+// *** not in use ***
+const timeFormat = new Intl.DateTimeFormat('en-GB', {
+  hour: '2-digit',
+  minute: '2-digit',
+  day: 'numeric',
+  month: 'short',
+  timeZone: 'Europe/London', // the same on the server and in the browser, so no hydration mismatch
+})
 // The options a firm can choose from. A short, curated list is friendlier than
 // all 400+ time zones; add more as firms ask.
 export const LOCALE_OPTIONS = [

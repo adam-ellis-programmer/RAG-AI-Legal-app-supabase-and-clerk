@@ -20,6 +20,7 @@ import { OnlineDot } from '@/components/OnlineDot'
 import { isDemoOrg } from '@/lib/demo'
 import { startDirectMessage } from '@/app/app/chat/actions'
 import { SubmitButton } from '@/components/SubmitButton'
+import { getFirmFormat } from '@/lib/firm-settings'
 
 export default async function ConversationPage({
   params,
@@ -34,26 +35,29 @@ export default async function ConversationPage({
   const conversation = await getAccessibleConversation(db, userId, orgId, id)
   if (!conversation) notFound()
 
-  const [rows, members, blockedReason, matter, people] = await Promise.all([
-    // The latest 50, newest first (uses the conversation+createdAt index)…
-    db
-      .select()
-      .from(chatMessages)
-      .where(eq(chatMessages.conversationId, conversation.id))
-      .orderBy(desc(chatMessages.createdAt))
-      .limit(50),
-    getOrgMembers(orgId),
-    postingBlockedReason(db, conversation),
-    conversation.matterId
-      ? db
-          .select({ title: matters.title })
-          .from(matters)
-          .where(eq(matters.id, conversation.matterId))
-          .limit(1)
-      : Promise.resolve([]),
+  const [rows, members, blockedReason, matter, people, fmt] = await Promise.all(
+    [
+      // The latest 50, newest first (uses the conversation+createdAt index)…
+      db
+        .select()
+        .from(chatMessages)
+        .where(eq(chatMessages.conversationId, conversation.id))
+        .orderBy(desc(chatMessages.createdAt))
+        .limit(50),
+      getOrgMembers(orgId),
+      postingBlockedReason(db, conversation),
+      conversation.matterId
+        ? db
+            .select({ title: matters.title })
+            .from(matters)
+            .where(eq(matters.id, conversation.matterId))
+            .limit(1)
+        : Promise.resolve([]),
 
-    conversationRecipients(db, conversation), // the case team, or the two of you
-  ])
+      conversationRecipients(db, conversation), // the case team, or the two of you
+      getFirmFormat(orgId),
+    ],
+  )
 
   // …then flipped so the oldest is at the top, like any chat.
   const initialMessages = rows.reverse().map(toChatMessage)
@@ -78,6 +82,7 @@ export default async function ConversationPage({
           currentUserId={userId}
           names={names}
           blockedReason={blockedReason}
+          fmt={fmt}
         />
       </section>
 
@@ -109,7 +114,7 @@ export default async function ConversationPage({
               !isDemoOrg(orgId)
 
             return (
-              <li key={id} >
+              <li key={id}>
                 {canMessage ? (
                   <form action={startDirectMessage}>
                     <input type='hidden' name='userId' value={id} />
