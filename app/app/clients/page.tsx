@@ -8,10 +8,12 @@ import { createClient } from './actions'
 import { SubmitButton } from '@/components/SubmitButton'
 import { isDemoOrg } from '@/lib/demo'
 import { db } from '@/lib/db'
-
+import { formatDate } from '@/lib/dates'
+import { getFirmFormat } from '@/lib/firm-settings'
 export default async function ClientsPage() {
   const { orgId, userId } = await auth()
 
+  //  *** type check **** ???
   if (!orgId || !userId) {
     return (
       <main className='mx-auto max-w-3xl px-6 py-16 text-center'>
@@ -23,6 +25,7 @@ export default async function ClientsPage() {
   }
 
   const isDemo = isDemoOrg(orgId)
+  const fmt = await getFirmFormat(orgId)
 
   // Tenant wall (layer 1): only this firm's clients.
   // Tenant wall (layer 1): only this firm's clients.
@@ -49,12 +52,7 @@ export default async function ClientsPage() {
     .groupBy(clients.id)
     .orderBy(desc(clients.createdAt))
 
-  const added = (d: Date) =>
-    new Date(d).toLocaleDateString('en-GB', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    })
+  
 
   /**
   How the query works:
@@ -102,7 +100,9 @@ export default async function ClientsPage() {
 
       {rows.length === 0 ? (
         <div className='rounded-xl border border-dashed border-slate-300 p-10 text-center'>
-          <p className='text-slate-500'>No clients yet. Add your first above.</p>
+          <p className='text-slate-500'>
+            No clients yet. Add your first above.
+          </p>
         </div>
       ) : (
         <ViewSwitch storageKey='clients-view'>
@@ -120,12 +120,19 @@ export default async function ClientsPage() {
                 {rows.map((c) => (
                   <tr key={c.id} className='hover:bg-slate-50'>
                     <td className='px-4 py-3'>
-                      <Link href={`/app/clients/${c.id}`} className='font-medium text-slate-900 hover:underline'>
+                      <Link
+                        href={`/app/clients/${c.id}`}
+                        className='font-medium text-slate-900 hover:underline'
+                      >
                         {c.name}
                       </Link>
                     </td>
-                    <td className='px-4 py-3 text-right tabular-nums text-slate-600'>{c.caseCount}</td>
-                    <td className='px-4 py-3 text-right text-slate-400'>{added(c.createdAt)}</td>
+                    <td className='px-4 py-3 text-right tabular-nums text-slate-600'>
+                      {c.caseCount}
+                    </td>
+                    <td className='px-4 py-3 text-right text-slate-400'>
+                      {formatDate(c.createdAt, fmt)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -142,7 +149,8 @@ export default async function ClientsPage() {
                 >
                   <span className='font-medium text-slate-900'>{c.name}</span>
                   <span className='mt-2 block text-xs text-slate-500'>
-                    {c.caseCount} {c.caseCount === 1 ? 'case' : 'cases'} · added {added(c.createdAt)}
+                    {c.caseCount} {c.caseCount === 1 ? 'case' : 'cases'} · added{' '}
+                    {formatDate(c.createdAt, fmt)}
                   </span>
                 </Link>
               </li>

@@ -2,7 +2,7 @@
 // The case's audit trail, written as sentences a case lead can read.
 // Pure rendering (no hooks), so it works inside the server-rendered case page.
 import Link from 'next/link'
-
+import { formatDateTime, type DateFormat } from '@/lib/dates' // formatDay for CaseBilling
 export type ActivityEntry = {
   id: string
   userId: string
@@ -70,13 +70,9 @@ function describe(e: ActivityEntry, matterId: string) {
   }
 }
 
-function when(d: Date) {
-  return new Date(d).toLocaleString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+// was:  function when(d: Date) { return new Date(d).toLocaleString('en-GB', { … }) }
+function when(d: Date | string, fmt: DateFormat) {
+  return formatDateTime(d, fmt)
 }
 
 export function CaseActivity({
@@ -84,11 +80,13 @@ export function CaseActivity({
   entries,
   names,
   filter,
+  fmt,
 }: {
   matterId: string
   entries: ActivityEntry[]
   names: Record<string, string> // current names from Clerk, by userId
   filter: ActivityFilter
+  fmt: DateFormat
 }) {
   return (
     // prettier-ignore
@@ -130,7 +128,7 @@ export function CaseActivity({
 
                 </span>
                 <time dateTime={new Date(e.createdAt).toISOString()} className='shrink-0 text-xs text-slate-400'>
-                  {when(e.createdAt)}
+                 {when(e.createdAt, fmt)}
                 </time>
               </li>
             )

@@ -14,12 +14,8 @@ import {
   openBillingPortal,
 } from './actions'
 
-const longDate = (d: Date) =>
-  d.toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
+import { formatLongDate } from '@/lib/dates'
+import { getFirmFormat } from '@/lib/firm-settings'
 
 export default async function PlanPage({
   searchParams,
@@ -45,12 +41,13 @@ export default async function PlanPage({
   const isAdmin = orgRole === 'org:admin'
 
   const clerk = await clerkClient()
-  const [details, used, members] = await Promise.all([
+  const [details, used, members, fmt] = await Promise.all([
     getOrgPlanDetails(orgId),
     questionsUsedThisMonth(orgId),
     clerk.organizations
       .getOrganizationMembershipList({ organizationId: orgId, limit: 1 })
       .then((r) => r.totalCount),
+    getFirmFormat(orgId),
   ])
 
   const plan = PLANS[details.plan]
@@ -146,9 +143,10 @@ export default async function PlanPage({
             <>
               <p className='mt-2 rounded-lg bg-amber-50 p-3 text-amber-800 ring-1 ring-amber-200'>
                 Your subscription is cancelled. You keep Pro until{' '}
-                <strong>{longDate(details.cancelAt)}</strong>; after that your
-                firm moves to the Free plan ({PLANS.free.questionsPerMonth}{' '}
-                questions a month). Nothing more will be charged.
+                <strong>{formatLongDate(details.cancelAt, fmt)}</strong>; after
+                that your firm moves to the Free plan (
+                {PLANS.free.questionsPerMonth} questions a month). Nothing more
+                will be charged.
               </p>
               {/* ----------- resume subscription form -------------------- */}
               {isAdmin && (
@@ -166,7 +164,7 @@ export default async function PlanPage({
             <>
               <p className='mt-2 text-slate-600'>
                 {details.currentPeriodEnd
-                  ? `Renews on ${longDate(details.currentPeriodEnd)}.`
+                  ? `Renews on ${formatLongDate(details.currentPeriodEnd, fmt)}.`
                   : 'Active.'}
               </p>
               {isAdmin && (
@@ -196,7 +194,7 @@ export default async function PlanPage({
                         Your firm keeps Pro until the end of the period
                         you&apos;ve paid for
                         {details.currentPeriodEnd &&
-                          ` (${longDate(details.currentPeriodEnd)})`}
+                          ` (${formatLongDate(details.currentPeriodEnd, fmt)})`}
                         , then moves to Free. You can undo this any time before
                         then.
                       </p>
@@ -233,8 +231,3 @@ export default async function PlanPage({
   )
 }
 
-/**
- *  Promise.all([...]) runs the three lookups (your database twice, Clerk once) at the same time instead of one after another, so the page loads faster.
- *  searchParams is a Promise in Next.js 16, which is why it’s awaited. It’s how the page reads the ?checkout=success that Stripe sends people back with.
- *  The “Manage billing” button for firms that already pay comes in step 5. It needs the webhook data first.
- */

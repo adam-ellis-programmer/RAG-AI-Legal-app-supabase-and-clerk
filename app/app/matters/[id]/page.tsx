@@ -27,6 +27,9 @@ import { ConfirmSubmitButton } from '@/components/ConfirmSubmitButton'
 import { deleteDocument } from '@/app/app/documents/actions'
 import { isDemoOrg } from '@/lib/demo'
 
+import { formatDate, formatDateTime } from '@/lib/dates'
+import { getFirmFormat } from '@/lib/firm-settings'
+
 // The page now reads a search param for the filter (changed function signature)
 export default async function MatterPage({
   params,
@@ -50,7 +53,7 @@ export default async function MatterPage({
   const canEdit = isAdmin && !isDemo
 
   // prettier-ignore
-  const [[client], team, orgMembers, caseDocs, lawBooks, history] = await Promise.all([
+  const [[client], team, orgMembers, caseDocs, lawBooks, history, fmt] = await Promise.all([
     db.select().from(clients).where(eq(clients.id, matter.clientId)).limit(1),
     db.select().from(matterMembers).where(eq(matterMembers.matterId, id)),
     getOrgMembers(orgId),
@@ -83,6 +86,7 @@ export default async function MatterPage({
       .where(and(eq(queries.matterId, id), eq(queries.orgId, orgId)))
       .orderBy(desc(queries.createdAt))
       .limit(20),
+      getFirmFormat(orgId), 
   ])
 
   const byUserId = new Map(orgMembers.map((m) => [m.userId, m])) // ← existing, keep
@@ -366,7 +370,7 @@ export default async function MatterPage({
                   </span>
                   <span className='shrink-0 text-xs text-slate-400'>
                     {byUserId.get(doc.uploadedBy ?? '')?.name ?? 'Unknown'} ·{' '}
-                    {new Date(doc.createdAt).toLocaleDateString()}
+                    {formatDate(doc.createdAt, fmt)}
                   </span>
                 </Link>
                 {canEdit && (
@@ -429,7 +433,8 @@ export default async function MatterPage({
                   </span>
                   <span className='mt-1 block text-xs text-slate-400'>
                     {byUserId.get(h.userId)?.name ?? 'Former firm member'} ·{' '}
-                    {new Date(h.createdAt).toLocaleString()}
+                    {/* {new Date(h.createdAt).toLocaleString()} */}
+                    {formatDateTime(h.createdAt, fmt)}
                     {h.status !== 'complete' &&
                       ` · ${h.status === 'error' ? 'failed' : 'unfinished'}`}
                   </span>
@@ -465,6 +470,7 @@ export default async function MatterPage({
             entries={activity}
             names={names}
             filter={filter}
+            fmt={fmt}
           />
         </section>
       )}

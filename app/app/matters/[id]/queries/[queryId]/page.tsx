@@ -10,6 +10,9 @@ import { queries, documentFiles } from '@/lib/schema'
 import { getMatterAccess, getOrgMembers, isUuid } from '@/lib/matter-access'
 import { AnswerMarkdown, SourceList } from '@/components/AnswerView'
 
+import { formatDateTime } from '@/lib/dates'
+import { getFirmFormat } from '@/lib/firm-settings'
+
 export default async function SavedQueryPage({
   params,
 }: {
@@ -22,11 +25,19 @@ export default async function SavedQueryPage({
   if (!access || !isUuid(queryId)) notFound()
   const { orgId, matter } = access
 
+  const fmt = await getFirmFormat(orgId) // this firm's date format and time zone
+
   // The clicked turn must belong to THIS case in THIS firm.
   const [clicked] = await db
     .select({ id: queries.id, threadId: queries.threadId })
     .from(queries)
-    .where(and(eq(queries.id, queryId), eq(queries.matterId, id), eq(queries.orgId, orgId)))
+    .where(
+      and(
+        eq(queries.id, queryId),
+        eq(queries.matterId, id),
+        eq(queries.orgId, orgId),
+      ),
+    )
     .limit(1)
   if (!clicked) notFound()
 
@@ -53,7 +64,12 @@ export default async function SavedQueryPage({
       ? db
           .select({ id: documentFiles.id, source: documentFiles.source })
           .from(documentFiles)
-          .where(and(eq(documentFiles.orgId, orgId), inArray(documentFiles.id, allFileIds)))
+          .where(
+            and(
+              eq(documentFiles.orgId, orgId),
+              inArray(documentFiles.id, allFileIds),
+            ),
+          )
       : Promise.resolve([]),
     getOrgMembers(orgId),
   ])
@@ -64,22 +80,29 @@ export default async function SavedQueryPage({
 
   return (
     <main className='mx-auto max-w-3xl px-6 py-10'>
-      <Link href={`/app/matters/${id}`} className='text-sm text-slate-500 hover:text-slate-900'>
+      <Link
+        href={`/app/matters/${id}`}
+        className='text-sm text-slate-500 hover:text-slate-900'
+      >
         &larr; {matter.title}
       </Link>
 
-      <h1 className='mt-3 font-serif text-2xl text-slate-900'>{first.question}</h1>
+      <h1 className='mt-3 font-serif text-2xl text-slate-900'>
+        {first.question}
+      </h1>
       <p className='mt-1 text-sm text-slate-500'>
         {turns.length === 1
-          ? `Asked by ${names.get(first.userId) ?? 'Former firm member'} · ${new Date(first.createdAt).toLocaleString()}`
-          : `${turns.length} questions · started ${new Date(first.createdAt).toLocaleString()}`}
+          ? `Asked by ${names.get(first.userId) ?? 'Former firm member'} · ${formatDateTime(first.createdAt, fmt)}`
+          : `${turns.length} questions · started ${formatDateTime(first.createdAt, fmt)}`}
       </p>
 
       <div className='mt-8 space-y-10'>
         {turns.map((t, i) => {
           const anchor = `t${i}-`
           const isClicked = t.id === queryId
-          const ticked = t.fileIds.map((fid) => fileNames.get(fid)).filter(Boolean)
+          const ticked = t.fileIds
+            .map((fid) => fileNames.get(fid))
+            .filter(Boolean)
           const missing = t.fileIds.length - ticked.length
 
           return (
@@ -90,12 +113,16 @@ export default async function SavedQueryPage({
             >
               <div>
                 <h2 className='text-sm font-medium text-slate-900'>
-                  {i > 0 && <span className='mr-1 text-xs font-normal text-slate-400'>Follow-up:</span>}
+                  {i > 0 && (
+                    <span className='mr-1 text-xs font-normal text-slate-400'>
+                      Follow-up:
+                    </span>
+                  )}
                   {t.question}
                 </h2>
                 <p className='mt-1 text-xs text-slate-400'>
                   {names.get(t.userId) ?? 'Former firm member'} ·{' '}
-                  {new Date(t.createdAt).toLocaleString()} · read from{' '}
+                  {formatDateTime(t.createdAt, fmt)} · read from{' '}
                   {ticked.join(', ') || 'no documents'}
                   {missing > 0 && ` (and ${missing} since removed)`}
                 </p>
@@ -108,7 +135,8 @@ export default async function SavedQueryPage({
               )}
               {t.status === 'error' && (
                 <p className='text-sm text-red-600'>
-                  This answer didn&apos;t finish. Ask the question again from the case page.
+                  This answer didn&apos;t finish. Ask the question again from
+                  the case page.
                 </p>
               )}
 

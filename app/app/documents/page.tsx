@@ -8,6 +8,9 @@ import { ConfirmSubmitButton } from '@/components/ConfirmSubmitButton'
 import { deleteDocument } from './actions'
 import { isDemoOrg } from '@/lib/demo'
 
+import { formatDate } from '@/lib/dates'
+import { getFirmFormat } from '@/lib/firm-settings'
+
 export default async function DocumentsPage() {
   const { userId, orgId, has } = await auth()
 
@@ -23,6 +26,8 @@ export default async function DocumentsPage() {
 
   const isOrgAdmin = has({ role: 'org:admin' })
   const isDemo = isDemoOrg(orgId)
+  const fmt = await getFirmFormat(orgId) // this firm's date format and time zone
+
   // One row per uploaded document, scoped to the active org (the tenant wall).
   // `left(full_text, 160)` fetches only a short preview - never the whole book.
   let docs: Array<{
@@ -98,7 +103,9 @@ export default async function DocumentsPage() {
                 <div className='flex items-center justify-between gap-3'>
                   <span className='truncate font-medium text-slate-900'>{doc.source}</span>
                   <span className='shrink-0 text-xs text-slate-400'>
-                    {new Date(doc.created_at).toLocaleDateString()}
+                    {/* {new Date(doc.created_at).toLocaleDateString()} */}
+                    {formatDate(doc.created_at, fmt)}
+
                   </span>
                 </div>
                 <p className='mt-1 line-clamp-2 text-sm text-slate-500'>{doc.preview}&hellip;</p>

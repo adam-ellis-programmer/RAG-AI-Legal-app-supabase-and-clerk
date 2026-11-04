@@ -30,6 +30,41 @@ export function formatDateTime(
   }).format(new Date(d))
 }
 
+/** For `date` columns (issued_on, date_of_birth): a calendar day, not a moment.
+ *  Always UTC, so the day never shifts; only the style follows the firm. */
+export function formatDay(day: Date | string, f: DateFormat = DEFAULT_FORMAT) {
+  return new Intl.DateTimeFormat(f.locale, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(day))
+}
+
+/** "17 November 2026" (UK) / "November 17, 2026" (US): for dates in sentences. */
+// prettier-ignore
+export function formatLongDate(d: Date | string, f: DateFormat = DEFAULT_FORMAT) {
+  return new Intl.DateTimeFormat(f.locale, {
+    day: 'numeric', month: 'long', year: 'numeric', timeZone: f.timeZone,
+  }).format(new Date(d))
+}
+
+// prettier-ignore
+// NOT IN USE HERE -- keep for reference
+const added = (d: Date) => new Date(d).toLocaleDateString('en-GB', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+})
+
+// prettier-ignore
+// NOT IN USE HERE -- keep for reference
+const longDate = (d: Date) => d.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+
 // The options a firm can choose from. A short, curated list is friendlier than
 // all 400+ time zones; add more as firms ask.
 export const LOCALE_OPTIONS = [

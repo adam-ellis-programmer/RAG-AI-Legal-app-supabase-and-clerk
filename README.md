@@ -38,3 +38,6 @@ openssl rand -hex 32
 
 
  grep -rn "toLocaleDateString()\|toLocaleString()" app components
+
+
+ npx tsc --noEmit
