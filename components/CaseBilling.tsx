@@ -4,6 +4,7 @@ import { formatPence } from '@/lib/money'
 import { markInvoicePaid } from '@/app/app/matters/[id]/actions'
 import { SubmitButton } from '@/components/SubmitButton'
 import { InvoiceForm } from '@/components/InvoiceForm'
+import { formatDay, type DateFormat } from '@/lib/dates'
 
 type Invoice = {
   id: string
@@ -13,25 +14,18 @@ type Invoice = {
   paidPence: number
 }
 
-function formatDate(d: string) {
-  return new Date(d).toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    timeZone: 'UTC',
-  })
-}
-
 export function CaseBilling({
   matterId,
   invoices,
   canEdit,
+  fmt,
 }: {
   matterId: string
   invoices: Invoice[]
   canEdit: boolean
+  fmt: DateFormat
 }) {
-  // reduce adds the invoices up: it starts at 0 and adds each invoice’s amount in turn. 
+  // reduce adds the invoices up: it starts at 0 and adds each invoice’s amount in turn.
   // Because every amount is whole pence, the totals are exact.
   const charged = invoices.reduce((sum, i) => sum + i.amountPence, 0)
   const paid = invoices.reduce((sum, i) => sum + i.paidPence, 0)
@@ -74,7 +68,7 @@ export function CaseBilling({
                     {inv.number}
                   </span>
                   <span className='ml-2 text-xs text-slate-400'>
-                    {formatDate(inv.issuedOn)}
+                    {formatDay(inv.issuedOn, fmt)}
                   </span>
                 </span>
                 <span className='text-slate-900'>

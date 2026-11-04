@@ -1,10 +1,9 @@
 // components/ClientDetails.tsx
 // The client's personal details, with an inline edit form.
 // Only rendered for people on at least one of this client's cases.
-import { updateClientDetails } from '@/app/app/clients/[id]/actions'
-import { SubmitButton } from '@/components/SubmitButton'
-import { ClientDetailsForm } from './ClientDetailsForm'
 
+import { ClientDetailsForm } from './ClientDetailsForm'
+import { formatDay, type DateFormat } from '@/lib/dates'
 /** notes **
          <dl>, <dt> and <dd> are HTML's "description list", the right element for label-and-value pairs, and screen readers announce them as such. className='contents' makes each wrapper div disappear from the layout, so labels and values line up in the two-column grid.
         defaultValue pre-fills the form with the current details. Empty fields become null in the action, so clearing a field removes it.
@@ -25,24 +24,14 @@ type Details = {
 const input =
   'w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400'
 
-function formatDob(dob: string | null) {
-  if (!dob) return null
-  // 'YYYY-MM-DD' is read as UTC midnight, so format it in UTC too,
-  // otherwise a timezone shift could show the day before.
-  return new Date(dob).toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  })
-}
-
 export function ClientDetails({
   client,
   canEdit,
+  fmt,
 }: {
   client: Details
   canEdit: boolean
+  fmt: DateFormat
 }) {
   const address = [
     client.addressLine1,
@@ -52,8 +41,10 @@ export function ClientDetails({
   ]
     .filter(Boolean)
     .join(', ')
+
+  // prettier-ignore
   const rows: [string, string | null][] = [
-    ['Date of birth', formatDob(client.dateOfBirth)],
+    ['Date of birth', client.dateOfBirth ? formatDay(client.dateOfBirth, fmt) : null],
     ['Address', address || null],
     ['Phone', client.phone],
     ['Email', client.email],

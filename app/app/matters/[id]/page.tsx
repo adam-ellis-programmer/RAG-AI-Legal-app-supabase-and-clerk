@@ -451,6 +451,7 @@ export default async function MatterPage({
           matterId={matter.id}
           invoices={caseInvoices}
           canEdit={canEdit}
+          fmt={fmt}
         />
       )}
 

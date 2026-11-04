@@ -60,10 +60,23 @@ const added = (d: Date) => new Date(d).toLocaleDateString('en-GB', {
 // prettier-ignore
 // NOT IN USE HERE -- keep for reference
 const longDate = (d: Date) => d.toLocaleDateString('en-GB', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+})
+
+// NOT IN USE HERE -- keep for reference
+function formatDob(dob: string | null) {
+  if (!dob) return null
+  // 'YYYY-MM-DD' is read as UTC midnight, so format it in UTC too,
+  // otherwise a timezone shift could show the day before.
+  return new Date(dob).toLocaleDateString('en-GB', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
+    timeZone: 'UTC',
   })
+}
 
 // The options a firm can choose from. A short, curated list is friendlier than
 // all 400+ time zones; add more as firms ask.
