@@ -4,6 +4,7 @@
 
 import { ClientDetailsForm } from './ClientDetailsForm'
 import { formatDay, type DateFormat } from '@/lib/dates'
+import { ClientMap } from './ClientMap'
 /** notes **
          <dl>, <dt> and <dd> are HTML's "description list", the right element for label-and-value pairs, and screen readers announce them as such. className='contents' makes each wrapper div disappear from the layout, so labels and values line up in the two-column grid.
         defaultValue pre-fills the form with the current details. Empty fields become null in the action, so clearing a field removes it.
@@ -19,6 +20,8 @@ type Details = {
   postcode: string | null
   phone: string | null
   email: string | null
+  latitude: number | null
+  longitude: number | null
 }
 
 export function ClientDetails({
@@ -63,6 +66,14 @@ export function ClientDetails({
           </div>
         ))}
       </dl>
+
+      {client.latitude != null && client.longitude != null && (
+        <ClientMap
+          latitude={client.latitude}
+          longitude={client.longitude}
+          address={address}
+        />
+      )}
 
       {canEdit && (
         <details className='mt-4'>

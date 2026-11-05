@@ -17,7 +17,8 @@ bun dev
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 # CHECK STRIPE -- NPM RUN CHECK:STRIPE
-make notes for this 
+
+make notes for this
 
 grep -rn "already pays through Stripe" . --exclude-dir=node_modules --exclude-dir=.next
 grep -rn "APP_URL" . --exclude-dir=node_modules --exclude-dir=.next
@@ -28,19 +29,28 @@ git log --all --oneline -- .env.local
 
 openssl rand -hex 32
 
-
 #1 stripe listen --print-secret
 #2 stripe listen \
-#   --events checkout.session.completed,customer.subscription.updated,customer.subscription.deleted \
-#   --forward-to localhost:3000/api/stripe/webhook
+
+# --events checkout.session.completed,customer.subscription.updated,customer.subscription.deleted \
+
+# --forward-to localhost:3000/api/stripe/webhook
+
+grep -rn "toLocaleDateString()\|toLocaleString()" app components
+
+npx tsc --noEmit
+
+grep -rnE "toLocale(Date|Time)?String\(|Intl\.DateTimeFormat|longDate" app components lib
+
+google:
+Enabled: - Maps JavaScript API - Places API
+installed: npm install @vis.gl/react-google-maps
 
 
+API KEY:
+AIzaSyD9m1icRcl1jE_Fg76wMxqudpH8oSGHmQI
 
 
- grep -rn "toLocaleDateString()\|toLocaleString()" app components
-
-
- npx tsc --noEmit
-
-
- grep -rnE "toLocale(Date|Time)?String\(|Intl\.DateTimeFormat|longDate" app components lib
+Todo:
+-  set up a limit on the billing account 
+- 

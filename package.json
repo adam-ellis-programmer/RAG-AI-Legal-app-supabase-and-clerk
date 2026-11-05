@@ -19,6 +19,7 @@
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.21",
     "@clerk/nextjs": "^7.6.1",
+    "@vis.gl/react-google-maps": "^1.10.2",
     "ai": "^7.0.37",
     "drizzle-orm": "^0.45.2",
     "next": "16.2.12",
