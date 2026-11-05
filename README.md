@@ -41,3 +41,6 @@ openssl rand -hex 32
 
 
  npx tsc --noEmit
+
+
+ grep -rnE "toLocale(Date|Time)?String\(|Intl\.DateTimeFormat|longDate" app components lib

@@ -53,15 +53,6 @@ export default async function ClientsPage() {
     .orderBy(desc(clients.createdAt))
 
   
-
-  /**
-  How the query works:
-            -  leftJoin(matters, …) gives one row per client per case, and left keeps clients with no cases (they’d vanish with a normal join).
-            -  The second leftJoin only matches when this user is on that case. On a walled case it matches nothing, so matterMembers.id is null.
-            -  count(matterMembers.id) counts only non-null values, i.e. only cases you’re on. ::int makes Postgres return a number instead of a string (as in your billing sums).
-            -  groupBy(clients.id) squashes it back to one row per client.
-            -  'en-GB' in added: toLocaleDateString() with no locale uses the server’s setting. On Vercel that’s American, so you’d get 10/7/2026 instead of 7 Oct 2026.
-     */
   return (
     <main className='mx-auto max-w-5xl px-6 py-10'>
       <div className='mb-8'>

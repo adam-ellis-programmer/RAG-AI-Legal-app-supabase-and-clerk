@@ -7,6 +7,7 @@ export const DEFAULT_FORMAT: DateFormat = {
   timeZone: 'Europe/London',
 }
 
+// *** not in use **** 
 export function formatDate(d: Date | string, f: DateFormat = DEFAULT_FORMAT) {
   return new Intl.DateTimeFormat(f.locale, {
     day: 'numeric',
@@ -16,6 +17,8 @@ export function formatDate(d: Date | string, f: DateFormat = DEFAULT_FORMAT) {
   }).format(new Date(d))
 }
 
+
+// *** not in use **** 
 export function formatDateTime(
   d: Date | string,
   f: DateFormat = DEFAULT_FORMAT,
@@ -32,6 +35,7 @@ export function formatDateTime(
 
 /** For `date` columns (issued_on, date_of_birth): a calendar day, not a moment.
  *  Always UTC, so the day never shifts; only the style follows the firm. */
+// *** not in use **** 
 export function formatDay(day: Date | string, f: DateFormat = DEFAULT_FORMAT) {
   return new Intl.DateTimeFormat(f.locale, {
     day: 'numeric',
