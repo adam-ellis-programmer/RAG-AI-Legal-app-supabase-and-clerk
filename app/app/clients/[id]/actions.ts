@@ -8,6 +8,7 @@ import { db } from '@/lib/db'
 import { clients, matters, matterMembers } from '@/lib/schema'
 import { logAction } from '@/lib/audit'
 import { assertNotDemo } from '@/lib/demo'
+import { geocodeUkPostcode } from '@/lib/geocode'
 
 // ---------------------------------------------------------------------------
 // Create a case (matter) for a client
@@ -96,6 +97,10 @@ export async function updateClientDetails(
   const { userId, orgId } = await auth()
   if (!userId || !orgId) throw new Error('Not authorized')
 
+  // ---- Look up the map position (only the postcode is sent) ----
+  const postcode = field(formData, 'postcode')?.toUpperCase() ?? null
+  const position = postcode ? await geocodeUkPostcode(postcode) : null
+
   // ----- Assert Demo ---------
   await assertNotDemo()
 
@@ -129,8 +134,6 @@ export async function updateClientDetails(
   // Comparing as strings works: YYYY-MM-DD sorts alphabetically in date order.
   const dateOfBirth = field(formData, 'dateOfBirth')
   if (dateOfBirth && dateOfBirth > new Date().toISOString().slice(0, 10)) {
-
-
     return { error: 'Date of birth cannot be in the future.', values }
   }
 
@@ -147,9 +150,13 @@ export async function updateClientDetails(
       addressLine1: field(formData, 'addressLine1'),
       addressLine2: field(formData, 'addressLine2'),
       town: field(formData, 'town'),
-      postcode: field(formData, 'postcode')?.toUpperCase() ?? null,
+      postcode,
       phone: field(formData, 'phone'),
       email,
+      // No postcode, or one we can't find → clear the pin, so an old
+      // address's position never lingers on the map.
+      latitude: position?.latitude ?? null,
+      longitude: position?.longitude ?? null,
     })
     .where(eq(clients.id, clientId))
 
