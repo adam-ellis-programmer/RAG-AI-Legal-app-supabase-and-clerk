@@ -41,7 +41,7 @@ export function ClientDetails({
   ]
     .filter(Boolean)
     .join(', ')
-
+  
   // prettier-ignore
   const rows: [string, string | null][] = [
     ['Date of birth', client.dateOfBirth ? formatDay(client.dateOfBirth, fmt) : null],

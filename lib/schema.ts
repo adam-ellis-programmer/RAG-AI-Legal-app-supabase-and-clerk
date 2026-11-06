@@ -1,4 +1,5 @@
 // we added
+
 import {
   pgTable,
   uuid,
@@ -11,6 +12,7 @@ import {
   primaryKey,
   jsonb,
   date,
+  doublePrecision,
 } from 'drizzle-orm/pg-core'
 
 // lib/schema.ts — defines the documents table in TypeScript:
@@ -77,6 +79,9 @@ export const clients = pgTable(
     postcode: text('postcode'),
     phone: text('phone'),
     email: text('email'),
+    // Map position, looked up from the postcode when the address is saved.
+    latitude: doublePrecision('latitude'),
+    longitude: doublePrecision('longitude'),
     createdBy: text('created_by').notNull(), // the userId who onboarded them
     createdAt: timestamp('created_at', { withTimezone: true })
       .defaultNow()
@@ -285,9 +290,6 @@ export const orgPlans = pgTable('org_plans', {
     .notNull(),
 })
 
-
-
-
 // ---------------- Firm chat (people-to-people, not the AI assistant) ----------------
 
 // One row per chat. A case chat belongs to a matter; a direct message doesn't.
@@ -299,11 +301,15 @@ export const chatConversations = pgTable(
     type: text('type', { enum: ['case', 'direct'] }).notNull(),
     // Case chats: which case. Members come from matterMembers, so the chat
     // always follows the case team (and the ethical wall) automatically.
-    matterId: uuid('matter_id').references(() => matters.id, { onDelete: 'cascade' }),
+    matterId: uuid('matter_id').references(() => matters.id, {
+      onDelete: 'cascade',
+    }),
     // Direct messages: both userIds sorted and joined ("user_a:user_b"),
     // so two people can only ever have one DM per firm.
     dmKey: text('dm_key'),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (t) => [
     index('chat_conversations_org_id_idx').on(t.orgId),
@@ -337,13 +343,18 @@ export const chatMessages = pgTable(
       .references(() => chatConversations.id, { onDelete: 'cascade' }),
     senderId: text('sender_id').notNull(),
     body: text('body').notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
     // Soft delete: shown as "Message removed", but kept, because messages are records.
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
   },
   (t) => [
     // "Latest 50 in this conversation" and "unread since…" both use this
-    index('chat_messages_conversation_created_idx').on(t.conversationId, t.createdAt),
+    index('chat_messages_conversation_created_idx').on(
+      t.conversationId,
+      t.createdAt,
+    ),
   ],
 )
 
@@ -355,17 +366,19 @@ export const chatReads = pgTable(
       .notNull()
       .references(() => chatConversations.id, { onDelete: 'cascade' }),
     userId: text('user_id').notNull(),
-    lastReadAt: timestamp('last_read_at', { withTimezone: true }).defaultNow().notNull(),
+    lastReadAt: timestamp('last_read_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (t) => [primaryKey({ columns: [t.conversationId, t.userId] })],
 )
-
-
 
 // A firm's display preferences. No row = the defaults (UK format, London time).
 export const firmSettings = pgTable('firm_settings', {
   orgId: text('org_id').primaryKey(),
   locale: text('locale').notNull().default('en-GB'),
   timeZone: text('time_zone').notNull().default('Europe/London'),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 })
