@@ -14,6 +14,7 @@
     "check:stripe": "tsx --env-file=.env.local scripts/check-stripe.ts",
     "stripe:listen": "stripe listen --events checkout.session.completed,customer.subscription.updated,customer.subscription.deleted --forward-to localhost:3000/api/stripe/webhook",
     "chat:dev": "tsx watch --env-file=.env.local chat-server/index.ts",
+    "chat:start": "tsx chat-server/index.ts",
     "db:push": "npx drizzle-kit push"
   },
   "dependencies": {

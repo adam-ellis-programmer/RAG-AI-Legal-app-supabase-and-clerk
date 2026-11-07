@@ -46,6 +46,9 @@ google:
 Enabled: - Maps JavaScript API - Places API
 installed: npm install @vis.gl/react-google-maps
 
+npm install tsx:
+- Because chat server is written in TypeScript, and Node.js can’t run our TypeScript on its own.
+- "chat:start": "tsx chat-server/index.ts",
 
 API KEY:
 AIzaSyD9m1icRcl1jE_Fg76wMxqudpH8oSGHmQI
@@ -54,3 +57,5 @@ AIzaSyD9m1icRcl1jE_Fg76wMxqudpH8oSGHmQI
 Todo:
 -  set up a limit on the billing account 
 - 
+
+

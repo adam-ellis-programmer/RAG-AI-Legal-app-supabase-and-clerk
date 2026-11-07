@@ -3,7 +3,6 @@
 // Only the POSTCODE is sent: never the client's name or house number.
 // Kept in one function so a firm outside the UK can swap in another geocoder later.
 export type LatLng = { latitude: number; longitude: number }
-
 export async function geocodeUkPostcode(
   postcode: string,
 ): Promise<LatLng | null> {
