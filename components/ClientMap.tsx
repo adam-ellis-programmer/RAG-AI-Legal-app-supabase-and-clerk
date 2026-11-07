@@ -15,6 +15,7 @@ export function ClientMap({
 }) {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
   const mapId = process.env.NEXT_PUBLIC_GOOGLE_MAP_ID
+
   if (!apiKey || !mapId) return null // not configured: just no map, rather than an error
 
   const position = { lat: latitude, lng: longitude }
@@ -24,12 +25,20 @@ export function ClientMap({
       <div className='h-56 overflow-hidden rounded-lg border border-slate-200'>
         <APIProvider apiKey={apiKey}>
           <Map
-            key={`${latitude},${longitude}`} // a new address re-centres the map
+            key={`${latitude},${longitude}`}
             defaultCenter={position}
             defaultZoom={16}
             mapId={mapId}
-            gestureHandling='cooperative' // scrolling the page doesn't zoom the map by accident
+            gestureHandling='cooperative'
             clickableIcons={false}
+            // ---- overrides ----
+            mapTypeId='roadmap' // 'roadmap' | 'satellite' | 'hybrid' | 'terrain'
+            colorScheme='LIGHT' // 'LIGHT' | 'DARK' | 'FOLLOW_SYSTEM': picks the Light/Dark style attached to the Map ID
+            mapTypeControl={false} // hide the "Map | Satellite" buttons
+            streetViewControl={false} // hide the little yellow man (you have a Street View link already)
+            fullscreenControl={true} // keep the full-screen button
+            minZoom={12} // can't zoom out past the city
+            maxZoom={19}
           >
             <AdvancedMarker position={position} title={address} />
           </Map>
