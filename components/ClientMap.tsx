@@ -2,7 +2,12 @@
 'use client'
 // The client's location on a Google map, with links to Street View and directions.
 // A client component: the map runs in the browser.
-import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps'
+import {
+  APIProvider,
+  Map,
+  AdvancedMarker,
+  Pin,
+} from '@vis.gl/react-google-maps'
 
 export function ClientMap({
   latitude,
@@ -40,7 +45,13 @@ export function ClientMap({
             minZoom={12} // can't zoom out past the city
             maxZoom={19}
           >
-            <AdvancedMarker position={position} title={address} />
+            <AdvancedMarker position={position} title={address}>
+              <Pin
+                background='#0f172a'
+                borderColor='#020617'
+                glyphColor='#ffffff'
+              />
+            </AdvancedMarker>
           </Map>
         </APIProvider>
       </div>
