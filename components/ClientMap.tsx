@@ -47,8 +47,8 @@ export function ClientMap({
           >
             <AdvancedMarker position={position} title={address}>
               <Pin
-                background='#0f172a'
-                borderColor='#f97316'
+                background='#f97316'
+                borderColor='#020617'
                 glyphColor='#ffffff'
               />
             </AdvancedMarker>
