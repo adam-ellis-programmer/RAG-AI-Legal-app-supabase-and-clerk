@@ -22,6 +22,7 @@ make notes for this
 
 grep -rn "already pays through Stripe" . --exclude-dir=node_modules --exclude-dir=.next
 grep -rn "APP_URL" . --exclude-dir=node_modules --exclude-dir=.next
+grep -rn "dark" . --exclude-dir=node_modules --exclude-dir=.next
 
 git status
 git check-ignore -v .env.local
@@ -47,22 +48,32 @@ Enabled: - Maps JavaScript API - Places API
 installed: npm install @vis.gl/react-google-maps
 
 npm install tsx:
+
 - Because chat server is written in TypeScript, and Node.js can’t run our TypeScript on its own.
 - "chat:start": "tsx chat-server/index.ts",
 
 API KEY:
 AIzaSyD9m1icRcl1jE_Fg76wMxqudpH8oSGHmQI
 
-
 Todo:
--  set up a limit on the billing account 
-- 
 
+- set up a limit on the billing account
+-
 
 <!-- moved over  -->
+
 npm install --save-prod tsx @clerk/backend
-    --save-prod (or -P) means “put these in dependencies”, which moves them there if they’re currently in devDependencies.
-    Why @clerk/backend too
+--save-prod (or -P) means “put these in dependencies”, which moves them there if they’re currently in devDependencies.
+Why @clerk/backend too
 
     Look at your devDependencies: @clerk/backend is in there as well. The chat server needs it to run:
 
+# installed the types for google on AddressAutoComplete
+
+- npm install -D @types/google.maps
+-D (dev dependency) is right this time: type definitions are only used by TypeScript while you write and build. They’re deleted from the running code, so the live site never needs them. (The opposite case from tsx, which the chat server needs at runtime.)
+
+
+ npx tsc --noEmit
+ this checks to see the type errors 
+ 

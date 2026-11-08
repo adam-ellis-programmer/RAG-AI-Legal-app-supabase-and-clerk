@@ -20,7 +20,8 @@
     ],
     "paths": {
       "@/*": ["./*"]
-    }
+    },
+    "types": ["node", "google.maps"]
   },
   "include": [
     "next-env.d.ts",

@@ -9,6 +9,8 @@ import {
   Pin,
 } from '@vis.gl/react-google-maps'
 
+import { GoogleMapsProvider } from './GoogleMapsProvider'
+
 export function ClientMap({
   latitude,
   longitude,
@@ -28,7 +30,7 @@ export function ClientMap({
   return (
     <figure className='mt-4'>
       <div className='h-56 overflow-hidden rounded-lg border border-slate-200'>
-        <APIProvider apiKey={apiKey}>
+        <GoogleMapsProvider>
           <Map
             key={`${latitude},${longitude}`}
             defaultCenter={position}
@@ -53,7 +55,7 @@ export function ClientMap({
               />
             </AdvancedMarker>
           </Map>
-        </APIProvider>
+        </GoogleMapsProvider>
       </div>
       <figcaption className='mt-1 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400'>
         <span>{address}</span>

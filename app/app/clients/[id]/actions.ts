@@ -72,6 +72,21 @@ function field(formData: FormData, name: string) {
   return v === '' ? null : v
 }
 
+// The exact position from the address search, if one was picked and is a real map position.
+function pickedPosition(formData: FormData) {
+  const rawLat = String(formData.get('latitude') ?? '')
+  const rawLng = String(formData.get('longitude') ?? '')
+  if (!rawLat || !rawLng) return null
+  const latitude = Number(rawLat)
+  const longitude = Number(rawLng)
+  const valid =
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude) &&
+    Math.abs(latitude) <= 90 &&
+    Math.abs(longitude) <= 180
+  return valid ? { latitude, longitude } : null
+}
+
 // What the action returns to the form (read by useActionState in ClientDetailsForm).
 export type DetailsFormState = {
   error?: string
@@ -99,6 +114,7 @@ export async function updateClientDetails(
 
   // ---- Look up the map position (only the postcode is sent) ----
   const postcode = field(formData, 'postcode')?.toUpperCase() ?? null
+  const picked = pickedPosition(formData)
   const position = postcode ? await geocodeUkPostcode(postcode) : null
 
   // ----- Assert Demo ---------
