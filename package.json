@@ -19,11 +19,13 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.21",
+    "@clerk/backend": "^3.27.0",
     "@clerk/nextjs": "^7.6.1",
     "@vis.gl/react-google-maps": "^1.10.2",
     "ai": "^7.0.37",
     "drizzle-orm": "^0.45.2",
     "next": "16.2.12",
+    "next-themes": "^0.4.6",
     "pg": "^8.22.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -31,11 +33,11 @@
     "socket.io": "^4.8.4",
     "socket.io-client": "^4.8.4",
     "stripe": "^23.0.0",
+    "tsx": "^4.23.15",
     "unpdf": "^1.8.0",
     "voyageai": "^0.4.0"
   },
   "devDependencies": {
-    "@clerk/backend": "^3.22.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/pg": "^8.20.0",
@@ -46,7 +48,6 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
     "tailwindcss": "^4",
-    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }

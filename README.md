@@ -59,3 +59,10 @@ Todo:
 - 
 
 
+<!-- moved over  -->
+npm install --save-prod tsx @clerk/backend
+    --save-prod (or -P) means “put these in dependencies”, which moves them there if they’re currently in devDependencies.
+    Why @clerk/backend too
+
+    Look at your devDependencies: @clerk/backend is in there as well. The chat server needs it to run:
+

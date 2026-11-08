@@ -19,11 +19,33 @@
   }
 } */
 
+/* Dark mode is switched by class="dark" on <html> (set by next-themes),
+   not only by the computer's setting. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* The app is built from white + the slate scale. In dark mode we redefine
+   those colours, so every bg-white / text-slate-900 / border-slate-200 flips
+   at once, with no dark: classes needed in the components. */
+.dark {
+  color-scheme: dark; /* dark scrollbars, date pickers and form controls */
+
+  --color-white: oklch(16% 0.03 264);          /* page and card background */
+  --color-slate-50: oklch(20.8% 0.042 265.8);  /* subtle panels */
+  --color-slate-100: oklch(27.9% 0.041 260);   /* chips, hovers */
+  --color-slate-200: oklch(32% 0.042 258);     /* borders */
+  --color-slate-300: oklch(40% 0.043 257);     /* stronger borders */
+  --color-slate-400: oklch(62% 0.04 257);      /* muted text */
+  --color-slate-500: oklch(70.4% 0.04 256.8);  /* secondary text */
+  --color-slate-600: oklch(80% 0.03 255);
+  --color-slate-700: oklch(86.9% 0.022 252.9); /* body text */
+  --color-slate-800: oklch(92.9% 0.013 255.5);
+  --color-slate-900: oklch(96.8% 0.007 247.9); /* headings, and the main buttons */
+  --color-slate-950: oklch(98.4% 0.003 247.9);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-  /* background: rgb(33,33,33);  */
+  background-color: var(--color-white);
+  color: var(--color-slate-900);
 }
 
 @layer base {
@@ -32,3 +54,6 @@ body {
     cursor: pointer;
   }
 }
+
+
+
