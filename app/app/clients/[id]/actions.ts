@@ -112,11 +112,6 @@ export async function updateClientDetails(
   const { userId, orgId } = await auth()
   if (!userId || !orgId) throw new Error('Not authorized')
 
-  // ---- Look up the map position (only the postcode is sent) ----
-  const postcode = field(formData, 'postcode')?.toUpperCase() ?? null
-  const picked = pickedPosition(formData)
-  const position = postcode ? await geocodeUkPostcode(postcode) : null
-
   // ----- Assert Demo ---------
   await assertNotDemo()
 
@@ -157,6 +152,10 @@ export async function updateClientDetails(
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { error: 'That email address does not look right.', values }
   }
+
+  const postcode = field(formData, 'postcode')?.toUpperCase() ?? null
+  // prettier-ignore
+  const position = pickedPosition(formData) ?? (postcode ? await geocodeUkPostcode(postcode) : null)
 
   // ---- Save ----
   await db

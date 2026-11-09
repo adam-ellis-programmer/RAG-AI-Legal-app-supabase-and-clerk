@@ -77,3 +77,8 @@ Why @clerk/backend too
  npx tsc --noEmit
  this checks to see the type errors 
  
+
+ tsConfig.json chnages
+ - the moment you add a "types" line, TypeScript stops loading global types automatically, and loads only what’s in the list.
+
+ 
