@@ -13,6 +13,10 @@ import {
   matterMembers,
   matters,
   queries,
+  chatConversations,
+  chatMembers,
+  chatMessages,
+  chatReads,
 } from '@/lib/schema'
 import { ORG_ID } from './config'
 
@@ -33,6 +37,29 @@ export async function clearDemo() {
       .delete(auditLogs)
       .where(eq(auditLogs.orgId, ORG_ID))
       .returning({ id: auditLogs.id })
+
+    // Chat. The two tables without an org_id are found through their conversation.
+    const demoConversations = tx
+      .select({ id: chatConversations.id })
+      .from(chatConversations)
+      .where(eq(chatConversations.orgId, ORG_ID))
+    const reads = await tx
+      .delete(chatReads)
+      .where(inArray(chatReads.conversationId, demoConversations))
+      .returning({ userId: chatReads.userId })
+    const dmMembers = await tx
+      .delete(chatMembers)
+      .where(inArray(chatMembers.conversationId, demoConversations))
+      .returning({ userId: chatMembers.userId })
+    const msgs = await tx
+      .delete(chatMessages)
+      .where(eq(chatMessages.orgId, ORG_ID))
+      .returning({ id: chatMessages.id })
+    const convs = await tx
+      .delete(chatConversations)
+      .where(eq(chatConversations.orgId, ORG_ID))
+      .returning({ id: chatConversations.id })
+
     const qs = await tx
       .delete(queries)
       .where(eq(queries.orgId, ORG_ID))
@@ -76,6 +103,11 @@ export async function clearDemo() {
       matters: cases.length,
       clients: cls.length,
       demo_usage: usage.length,
+
+      chat_reads: reads.length,
+      chat_members: dmMembers.length,
+      chat_messages: msgs.length,
+      chat_conversations: convs.length,
     }
   })
 

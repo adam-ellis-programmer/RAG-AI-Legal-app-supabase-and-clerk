@@ -10,6 +10,8 @@ import { seedCases } from './cases'
 import { seedConversations } from './conversations'
 import { seedActivity } from './activity'
 import { seedBilling } from './billing'
+import { seedChat } from './chat'
+
 const clearOnly = process.argv.includes('--clear')
 
 // ******* STAGES ******* ????
@@ -44,6 +46,9 @@ async function main() {
 
   console.log('Stage 6: billing')
   await seedBilling(people, cases)
+
+  console.log('Stage 7: chat')
+  await seedChat(people, cases)
 }
 
 main()
