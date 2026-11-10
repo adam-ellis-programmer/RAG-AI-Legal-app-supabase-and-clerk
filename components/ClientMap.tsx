@@ -3,7 +3,7 @@
 // The client's location on a Google map, with links to Street View and directions.
 // A client component: the map runs in the browser.
 import {
-  APIProvider,
+  APIProvider, 
   Map,
   AdvancedMarker,
   Pin,
