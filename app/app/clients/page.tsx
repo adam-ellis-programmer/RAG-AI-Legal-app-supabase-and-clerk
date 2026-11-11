@@ -52,7 +52,8 @@ export default async function ClientsPage() {
     .groupBy(clients.id)
     .orderBy(desc(clients.createdAt))
 
-  
+
+
   return (
     <main className='mx-auto max-w-5xl px-6 py-10'>
       <div className='mb-8'>
