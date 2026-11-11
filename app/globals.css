@@ -29,17 +29,19 @@
 .dark {
   color-scheme: dark; /* dark scrollbars, date pickers and form controls */
 
-  --color-white: oklch(16% 0.03 264);          /* page and card background */
-  --color-slate-50: oklch(20.8% 0.042 265.8);  /* subtle panels */
-  --color-slate-100: oklch(27.9% 0.041 260);   /* chips, hovers */
-  --color-slate-200: oklch(32% 0.042 258);     /* borders */
-  --color-slate-300: oklch(40% 0.043 257);     /* stronger borders */
-  --color-slate-400: oklch(62% 0.04 257);      /* muted text */
-  --color-slate-500: oklch(70.4% 0.04 256.8);  /* secondary text */
+  --color-white: oklch(16% 0.03 264); /* page and card background */
+  --color-slate-50: oklch(20.8% 0.042 265.8); /* subtle panels */
+  --color-slate-100: oklch(27.9% 0.041 260); /* chips, hovers */
+  --color-slate-200: oklch(32% 0.042 258); /* borders */
+  --color-slate-300: oklch(40% 0.043 257); /* stronger borders */
+  --color-slate-400: oklch(62% 0.04 257); /* muted text */
+  --color-slate-500: oklch(70.4% 0.04 256.8); /* secondary text */
   --color-slate-600: oklch(80% 0.03 255);
   --color-slate-700: oklch(86.9% 0.022 252.9); /* body text */
   --color-slate-800: oklch(92.9% 0.013 255.5);
-  --color-slate-900: oklch(96.8% 0.007 247.9); /* headings, and the main buttons */
+  --color-slate-900: oklch(
+    96.8% 0.007 247.9
+  ); /* headings, and the main buttons */
   --color-slate-950: oklch(98.4% 0.003 247.9);
 }
 
@@ -57,3 +59,6 @@ body {
 
 
 
+html {
+  background: red;
+}
