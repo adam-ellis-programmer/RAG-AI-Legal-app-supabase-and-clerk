@@ -5,6 +5,7 @@
 import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
 import type { QuerySource } from '@/lib/schema'
+import { Badge } from './Badge'
 
 // Turn [1], [2] in the answer into links that jump to the matching source below.
 /**

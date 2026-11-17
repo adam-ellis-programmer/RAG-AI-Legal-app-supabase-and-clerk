@@ -4,6 +4,7 @@
 // because it sits inside app/app/layout.tsx.
 'use client'
 
+import { Notice } from '@/components/Notice'
 import Link from 'next/link'
 import { useEffect } from 'react'
 
@@ -21,18 +22,27 @@ export default function AppError({
 
   return (
     <main className='mx-auto max-w-md px-6 py-24 text-center'>
-      <h1 className='font-serif text-2xl text-slate-900'>Something went wrong</h1>
+      <h1 className='font-serif text-2xl text-slate-900'>
+        Something went wrong
+      </h1>
       <p className='mt-2 text-sm text-slate-600'>
-        This page couldn&apos;t be loaded. Please try again. If you&apos;re exploring
-        the demo firm, note that uploading and editing are switched off.
+        This page couldn&apos;t be loaded. Please try again. If you&apos;re
+        exploring the demo firm, note that uploading and editing are switched
+        off.
       </p>
 
       {/* In development, show the real message. In production Next.js hides it,
           so show the reference code instead, which you can find in the logs. */}
       {process.env.NODE_ENV === 'development' ? (
-        <p className='mt-4 rounded-md bg-red-50 p-2 text-xs text-red-700'>{error.message}</p>
+        <Notice tone='danger' className='mt-4 text-xs'>
+          {error.message}
+        </Notice>
       ) : (
-        error.digest && <p className='mt-4 text-xs text-slate-400'>Reference: {error.digest}</p>
+        error.digest && (
+          <p className='mt-4 text-xs text-slate-400'>
+            Reference: {error.digest}
+          </p>
+        )
       )}
 
       <div className='mt-6 flex justify-center gap-2'>

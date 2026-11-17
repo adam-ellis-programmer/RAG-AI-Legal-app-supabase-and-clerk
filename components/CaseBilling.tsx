@@ -5,6 +5,7 @@ import { markInvoicePaid } from '@/app/app/matters/[id]/actions'
 import { SubmitButton } from '@/components/SubmitButton'
 import { InvoiceForm } from '@/components/InvoiceForm'
 import { formatDay, type DateFormat } from '@/lib/dates'
+import { Badge } from './Badge'
 
 type Invoice = {
   id: string
@@ -75,13 +76,9 @@ export function CaseBilling({
                   {formatPence(inv.amountPence)}
                 </span>
                 {outstanding === 0 ? (
-                  <span className='rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700'>
-                    Paid
-                  </span>
+                  <Badge tone='success'>Paid</Badge>
                 ) : (
-                  <span className='rounded-full bg-amber-50 px-2 py-0.5 text-xs text-amber-700'>
-                    {formatPence(outstanding)} owed
-                  </span>
+                  <Badge tone='warning'>{formatPence(outstanding)} owed</Badge>
                 )}
                 {canEdit && outstanding > 0 && (
                   <form action={markInvoicePaid}>

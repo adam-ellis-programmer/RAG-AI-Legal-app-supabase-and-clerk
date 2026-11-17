@@ -16,6 +16,8 @@ import {
 
 import { formatLongDate } from '@/lib/dates'
 import { getFirmFormat } from '@/lib/firm-settings'
+import { Badge } from '@/components/Badge'
+import { Notice } from '@/components/Notice'
 
 export default async function PlanPage({
   searchParams,
@@ -64,11 +66,12 @@ export default async function PlanPage({
       </p>
 
       {checkout === 'success' && (
-        <p className='mt-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800 ring-1 ring-emerald-200'>
+        <Notice tone='success' className='mt-4'>
           Payment received. Your plan will switch to Pro as soon as Stripe
           confirms it, usually within a few seconds.
-        </p>
+        </Notice>
       )}
+
       {checkout === 'cancelled' && (
         <p className='mt-4 rounded-lg bg-slate-50 p-3 text-sm text-slate-600 ring-1 ring-slate-200'>
           Checkout cancelled. Nothing was charged.
@@ -79,9 +82,7 @@ export default async function PlanPage({
         <div className='flex items-center gap-2'>
           <h2 className='text-lg font-semibold text-slate-900'>{plan.label}</h2>
           {details.source === 'comp' && (
-            <span className='rounded-full bg-violet-50 px-2 py-0.5 text-xs text-violet-700'>
-              Complimentary
-            </span>
+            <Badge tone='accent'>Complimentary</Badge>
           )}
         </div>
 
@@ -141,13 +142,13 @@ export default async function PlanPage({
 
           {details.cancelAt ? (
             <>
-              <p className='mt-2 rounded-lg bg-amber-50 p-3 text-amber-800 ring-1 ring-amber-200'>
+              <Notice tone='warning' className='mt-2'>
                 Your subscription is cancelled. You keep Pro until{' '}
                 <strong>{formatLongDate(details.cancelAt, fmt)}</strong>; after
                 that your firm moves to the Free plan (
                 {PLANS.free.questionsPerMonth} questions a month). Nothing more
                 will be charged.
-              </p>
+              </Notice>
               {/* ----------- resume subscription form -------------------- */}
               {isAdmin && (
                 <form action={resumeSubscription} className='mt-3'>
@@ -202,7 +203,7 @@ export default async function PlanPage({
                       <form action={cancelSubscription} className='mt-3'>
                         <SubmitButton
                           pendingText='Cancelling…'
-                          className='rounded-md border border-red-300 px-4 py-2 font-medium text-red-700 hover:bg-red-50'
+                          className='rounded-md border border-red-300 px-4 py-2 font-medium text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/50'
                         >
                           Confirm cancellation
                         </SubmitButton>
@@ -230,4 +231,3 @@ export default async function PlanPage({
     </main>
   )
 }
-

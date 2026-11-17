@@ -2,6 +2,7 @@
 // Money across this client's cases, limited to the cases the viewer is admin on.
 import Link from 'next/link'
 import { formatPence } from '@/lib/money'
+import { Badge } from './Badge'
 
 type Row = { matterId: string; title: string; charged: number; paid: number }
 
@@ -27,7 +28,9 @@ export function ClientBilling({ rows }: { rows: Row[] }) {
         ).map(([label, pence]) => (
           <div key={label} className='rounded-lg border border-slate-200 p-3'>
             <dt className='text-xs text-slate-500'>{label}</dt>
-            <dd className={`mt-1 font-medium ${label === 'Owed' && owed > 0 ? 'text-amber-700' : 'text-slate-900'}`}>
+            <dd
+              className={`mt-1 font-medium ${label === 'Owed' && owed > 0 ? 'text-amber-700' : 'text-slate-900'}`}
+            >
               {formatPence(pence)}
             </dd>
           </div>
@@ -39,14 +42,19 @@ export function ClientBilling({ rows }: { rows: Row[] }) {
           const caseOwed = r.charged - r.paid
           return (
             <li key={r.matterId} className='flex items-center gap-3 py-2'>
-              <Link href={`/app/matters/${r.matterId}#billing`} className='min-w-0 flex-1 truncate text-slate-900 hover:underline'>
+              <Link
+                href={`/app/matters/${r.matterId}#billing`}
+                className='min-w-0 flex-1 truncate text-slate-900 hover:underline'
+              >
                 {r.title}
               </Link>
               <span className='text-slate-500'>{formatPence(r.charged)}</span>
               {caseOwed > 0 ? (
-                <span className='rounded-full bg-amber-50 px-2 py-0.5 text-xs text-amber-700'>{formatPence(caseOwed)} owed</span>
+                <Badge tone='warning'>{formatPence(caseOwed)} owed</Badge>
               ) : (
-                <span className='rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700'>Paid</span>
+                <span className='rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700'>
+                  <Badge tone='success'>Paid</Badge>
+                </span>
               )}
             </li>
           )

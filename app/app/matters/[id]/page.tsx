@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { db } from '@/lib/db'
 import { and, desc, eq, inArray, isNull } from 'drizzle-orm'
 import { CaseQuery } from '@/components/CaseQuery'
+import { Badge } from '@/components/Badge'
 // prettier-ignore
 import { clients, matterMembers, documentFiles, queries, auditLogs, invoices } from '@/lib/schema' // add invoices
 import { CaseBilling } from '@/components/CaseBilling'
@@ -169,10 +170,8 @@ export default async function MatterPage({
             <h1 className='font-serif text-2xl text-slate-900'>
               {matter.title}
             </h1>
-            {/* prettier-ignore */}
-            <span className={`rounded-full px-2 py-0.5 text-xs ${isOpen ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
-              {matter.status}
-            </span>
+
+            <Badge tone={isOpen ? 'success' : 'neutral'}>{matter.status}</Badge>
 
             {canEdit &&
               // prettier-ignore

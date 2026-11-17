@@ -3,6 +3,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
+import { Notice } from './Notice'
 
 type Source = {
   n: number
@@ -162,8 +163,8 @@ export default function FirmLibrary({ readOnly }: { readOnly: boolean }) {
   return (
     <main className='mx-auto flex min-h-screen max-w-3xl flex-col gap-6 p-4 sm:p-6'>
       <header>
-        <h1 className='text-xl font-semibold text-zinc-900'>Firm library</h1>
-        <p className='text-sm text-zinc-500'>
+        <h1 className='text-xl font-semibold text-slate-900'>Firm library</h1>
+        <p className='text-sm text-slate-500'>
           Shared reference material — legislation, textbooks, precedents.
           Everyone in the firm can read these and ask questions about them.
         </p>
@@ -171,17 +172,17 @@ export default function FirmLibrary({ readOnly }: { readOnly: boolean }) {
 
       {/* ---------------- Ingestion panel ---------------- */}
       {!readOnly && (
-        <section className='rounded-xl border border-zinc-200 bg-white p-4'>
-          <h2 className='mb-1 text-sm font-semibold text-zinc-700'>
+        <section className='rounded-xl border border-slate-200 bg-white p-4'>
+          <h2 className='mb-1 text-sm font-semibold text-slate-700'>
             Add to the firm library
           </h2>
-          <p className='mb-3 rounded-lg bg-amber-50 p-2 text-xs text-amber-900 ring-1 ring-amber-200'>
+          <Notice tone='warning' className='mb-3 text-xs'>
             Anything added here is visible to everyone in the firm. Client files
             belong on their case, where only the case team can see them.{' '}
             <Link href='/app/clients' className='font-medium underline'>
               Go to clients
             </Link>
-          </p>
+          </Notice>
 
           <div className='grid gap-4 md:grid-cols-2'>
             {/* Paste text */}
@@ -191,13 +192,13 @@ export default function FirmLibrary({ readOnly }: { readOnly: boolean }) {
                 onChange={(e) => setPasteText(e.target.value)}
                 placeholder='Paste document text here…'
                 rows={5}
-                className='w-full resize-y rounded-lg border border-zinc-300 p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+                className='w-full resize-y rounded-lg border border-slate-300 p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
               />
               <input
                 value={pasteSource}
                 onChange={(e) => setPasteSource(e.target.value)}
                 placeholder='Source label (optional)'
-                className='w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+                className='w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
               />
               <button
                 onClick={ingestPaste}
@@ -224,8 +225,8 @@ export default function FirmLibrary({ readOnly }: { readOnly: boolean }) {
               className={
                 'flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 text-center text-sm transition ' +
                 (dragActive
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                  : 'border-zinc-300 text-zinc-500 hover:border-zinc-400')
+                 ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300'
+                  : 'border-slate-300 text-slate-500 hover:border-slate-400')
               }
             >
               <p className='font-medium'>Drop a reference PDF here</p>
@@ -241,19 +242,19 @@ export default function FirmLibrary({ readOnly }: { readOnly: boolean }) {
           </div>
 
           {ingestMsg && (
-            <p className='mt-3 text-sm text-zinc-600'>{ingestMsg}</p>
+            <p className='mt-3 text-sm text-slate-600'>{ingestMsg}</p>
           )}
         </section>
       )}
 
       {/* ---------------- Chat panel ---------------- */}
-      <section className='flex flex-1 flex-col rounded-xl border border-zinc-200 bg-white'>
+      <section className='flex flex-1 flex-col rounded-xl border border-slate-200 bg-white'>
         <div
           className='flex-1 space-y-4 overflow-y-auto p-4'
           style={{ minHeight: 300 }}
         >
           {messages.length === 0 && (
-            <p className='mt-8 text-center text-sm text-zinc-400'>
+            <p className='mt-8 text-center text-sm text-slate-400'>
               Ask a question about the firm library. For questions about a
               client&apos;s case, open the case instead.
             </p>
@@ -269,7 +270,7 @@ export default function FirmLibrary({ readOnly }: { readOnly: boolean }) {
                   'inline-block max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2 text-sm ' +
                   (m.role === 'user'
                     ? 'bg-blue-600 text-white'
-                    : 'bg-zinc-100 text-zinc-900')
+                    : 'bg-slate-100 text-slate-900')
                 }
               >
                 {m.content || (loading ? '…' : '')}
@@ -277,15 +278,15 @@ export default function FirmLibrary({ readOnly }: { readOnly: boolean }) {
 
               {/* Citations under assistant answers */}
               {m.role === 'assistant' && m.sources && m.sources.length > 0 && (
-                <div className='mt-2 text-left text-xs text-zinc-500'>
-                  <p className='font-medium text-zinc-600'>Sources</p>
+                <div className='mt-2 text-left text-xs text-slate-500'>
+                  <p className='font-medium text-slate-600'>Sources</p>
                   {/* prettier-ignore */}
                   <ul className='mt-1 space-y-0.5'>
                        {m.sources.map((s) => (
                       <li key={s.n}>
                         [{s.n}]{' '}
                         {s.page && s.fileId ? (
-                          <a href={`/app/documents/${s.fileId}?page=${s.page}&from=cite&at=${s.startChar}#cited`} target='_blank' rel='noopener' className='underline underline-offset-2 hover:text-zinc-900'>
+                          <a href={`/app/documents/${s.fileId}?page=${s.page}&from=cite&at=${s.startChar}#cited`} target='_blank' rel='noopener' className='underline underline-offset-2 hover:text-slate-900'>
                             {s.source}
                           </a>
                         ) : (
@@ -306,14 +307,14 @@ export default function FirmLibrary({ readOnly }: { readOnly: boolean }) {
         {/* send message at bottom of chat */}
         <form
           onSubmit={sendMessage}
-          className='flex gap-2 border-t border-zinc-200 p-3'
+          className='flex gap-2 border-t border-slate-200 p-3'
         >
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder='Ask something…'
             disabled={loading}
-            className='flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+            className='flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
           />
           <button
             type='submit'

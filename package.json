@@ -15,7 +15,8 @@
     "stripe:listen": "stripe listen --events checkout.session.completed,customer.subscription.updated,customer.subscription.deleted --forward-to localhost:3000/api/stripe/webhook",
     "chat:dev": "tsx watch --env-file=.env.local chat-server/index.ts",
     "chat:start": "tsx chat-server/index.ts",
-    "db:push": "npx drizzle-kit push"
+    "db:push": "npx drizzle-kit push",
+    "dev:start": "npm run build && npm run start"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.21",

@@ -31,6 +31,9 @@ export default async function AppLayout({
       initialUnread={initialUnread}
       conversationIds={conversationIds}
     >
+      {/* border-white: an invisible border (same colour as the background). It stops
+    Chrome treating empty areas as "plain colour" and drawing them in a slightly
+    different shade in dark mode. Don't remove: see commit message. */}
       <div className='flex min-h-screen flex-col border border-white bg-white'>
         <header className='sticky top-0 z-50 border-b border-slate-200 bg-white'>
           <div className='mx-auto flex h-16 max-w-5xl items-center justify-between px-6'>
