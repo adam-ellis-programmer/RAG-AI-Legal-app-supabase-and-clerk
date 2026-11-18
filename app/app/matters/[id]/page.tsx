@@ -275,7 +275,7 @@ export default async function MatterPage({
                       <input type='hidden' name='memberId' value={member.id} />
                       <SubmitButton
                         pendingText='Removing…'
-                        className='rounded-md px-2 py-1 text-xs text-red-600 hover:bg-red-50'
+                        className='rounded-md px-2 py-1 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50'
                       >
                         Remove
                       </SubmitButton>
@@ -378,7 +378,7 @@ export default async function MatterPage({
                     <ConfirmSubmitButton
                       message={`Delete "${doc.source}" from this case? Its passages will no longer be searchable. This can't be undone.`}
                       pendingText='Deleting…'
-                      className='rounded-md px-2 py-1 text-xs text-red-600 hover:bg-red-50'
+                      className='rounded-md px-2 py-1 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50'
                     >
                       Delete
                     </ConfirmSubmitButton>

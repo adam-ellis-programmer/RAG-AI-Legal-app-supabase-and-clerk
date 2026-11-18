@@ -85,7 +85,7 @@ function highlightRange(
       {pageText.slice(0, from)}
       <mark
         id='cited'
-        className='rounded bg-amber-100 px-0.5 ring-1 ring-amber-300'
+        className='rounded bg-amber-100 px-0.5 ring-1 ring-amber-300 dark:bg-amber-500/30 dark:text-amber-100 dark:ring-amber-700'
       >
         {pageText.slice(from, to)}
       </mark>
