@@ -114,7 +114,7 @@ export default async function DocumentsPage() {
                 {!isDemo && (isOrgAdmin || doc.uploaded_by === userId) && (
                 <form action={deleteDocument} className='p-3'>
                   <input type='hidden' name='fileId' value={doc.id} />
-                  <ConfirmSubmitButton message={`Delete "${doc.source}" from the firm library? Everyone will lose access to it. This can't be undone.`} pendingText='Deleting…' className='rounded-md px-2 py-1 text-xs text-red-600 hover:bg-red-50'>
+                  <ConfirmSubmitButton message={`Delete "${doc.source}" from the firm library? Everyone will lose access to it. This can't be undone.`} pendingText='Deleting…' className='rounded-md px-2 py-1 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50'>
                     Delete
                   </ConfirmSubmitButton>
                 </form>

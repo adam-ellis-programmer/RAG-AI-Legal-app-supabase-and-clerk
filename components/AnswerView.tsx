@@ -56,9 +56,10 @@ export function SourceList({ sources, anchor = '' }: { sources: QuerySource[]; a
         {sources.map((s) => ( //<--The saved-answer page doesn't pass anchor, so it keeps working unchanged.
             <li key={s.n} id={`${anchor}source-${s.n}`} className='flex scroll-mt-4 items-center gap-2'>
             <span className='w-8 shrink-0 text-slate-400'>[{s.n}]</span>
-            <span className={`rounded-full px-2 py-0.5 text-xs ${s.kind === 'case' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'}`}>
+
+            <Badge tone={s.kind === 'case' ? 'warning' : 'neutral'}>
               {s.kind === 'case' ? 'Case' : 'Law'}
-            </span>
+            </Badge>
             <Link
               href={s.page ? `/app/documents/${s.fileId}?page=${s.page}&from=cite&at=${s.startChar}#cited` : `/app/documents/${s.fileId}`}
               prefetch={false}

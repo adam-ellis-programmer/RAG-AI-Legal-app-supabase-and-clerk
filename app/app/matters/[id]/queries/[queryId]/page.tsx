@@ -109,7 +109,7 @@ export default async function SavedQueryPage({
             <article
               key={t.id}
               id={`turn-${t.id}`}
-              className={`scroll-mt-20 space-y-3 ${isClicked && turns.length > 1 ? 'rounded-xl bg-amber-50/60 p-4 ring-1 ring-amber-200' : ''}`}
+              className={`scroll-mt-20 space-y-3 ${isClicked && turns.length > 1 ? 'rounded-xl bg-amber-50/60 p-4 ring-1 ring-amber-200 dark:bg-amber-950/40 dark:ring-amber-800' : ''}`}
             >
               <div>
                 <h2 className='text-sm font-medium text-slate-900'>

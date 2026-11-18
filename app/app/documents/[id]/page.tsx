@@ -55,7 +55,7 @@ function highlight(text: string, term: string): React.ReactNode {
   while (i !== -1) {
     parts.push(text.slice(from, i))
     parts.push(
-      <mark key={key++} className='bg-yellow-200'>
+      <mark key={key++} className='bg-yellow-200 dark:bg-yellow-500/40 dark:text-yellow-100'>
         {text.slice(i, i + term.length)}
       </mark>,
     )
