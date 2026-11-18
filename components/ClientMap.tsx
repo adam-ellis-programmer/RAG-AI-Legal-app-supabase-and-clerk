@@ -3,13 +3,14 @@
 // The client's location on a Google map, with links to Street View and directions.
 // A client component: the map runs in the browser.
 import {
-  APIProvider, 
+  APIProvider,
   Map,
   AdvancedMarker,
   Pin,
 } from '@vis.gl/react-google-maps'
-
 import { GoogleMapsProvider } from './GoogleMapsProvider'
+
+import { useTheme } from 'next-themes'
 
 export function ClientMap({
   latitude,
@@ -27,12 +28,19 @@ export function ClientMap({
 
   const position = { lat: latitude, lng: longitude }
 
+  // Google draws the map, so CSS can't theme it: pass the scheme explicitly.
+  // resolvedTheme is 'light' or 'dark' (it resolves "system" for you), and
+  // undefined for a moment on first load, so default to light.
+  const { resolvedTheme } = useTheme()
+  const scheme = resolvedTheme === 'dark' ? 'DARK' : 'LIGHT'
+
   return (
     <figure className='mt-4'>
       <div className='h-56 overflow-hidden rounded-lg border border-slate-200'>
         <GoogleMapsProvider>
           <Map
             key={`${latitude},${longitude}`}
+            colorScheme={scheme} // Google's light or dark styling // 'LIGHT' | 'DARK' | 'FOLLOW_SYSTEM': picks the Light/Dark style attached to the Map ID
             defaultCenter={position}
             defaultZoom={16}
             mapId={mapId}
@@ -40,7 +48,6 @@ export function ClientMap({
             clickableIcons={false}
             // ---- overrides ----
             mapTypeId='roadmap' // 'roadmap' | 'satellite' | 'hybrid' | 'terrain'
-            colorScheme='LIGHT' // 'LIGHT' | 'DARK' | 'FOLLOW_SYSTEM': picks the Light/Dark style attached to the Map ID
             mapTypeControl={false} // hide the "Map | Satellite" buttons
             streetViewControl={false} // hide the little yellow man (you have a Street View link already)
             fullscreenControl={true} // keep the full-screen button
