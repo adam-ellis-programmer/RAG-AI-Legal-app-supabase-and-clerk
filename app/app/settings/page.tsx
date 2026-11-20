@@ -32,7 +32,7 @@ export default async function SettingsPage({
 
       <section className='mt-8 rounded-xl border border-slate-200 p-5'>
         <h2 className='mb-4 text-sm font-semibold text-slate-700'>
-          Dates and times
+         Dates, times and money
         </h2>
         <FirmSettingsForm initial={fmt} canEdit={canEdit} />
       </section>

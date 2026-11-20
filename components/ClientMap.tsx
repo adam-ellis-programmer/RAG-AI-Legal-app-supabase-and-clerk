@@ -39,7 +39,7 @@ export function ClientMap({
       <div className='h-56 overflow-hidden rounded-lg border border-slate-200'>
         <GoogleMapsProvider>
           <Map
-            key={`${latitude},${longitude}`}
+            key={`${latitude},${longitude},${scheme}`} // rebuild if the address OR the theme changes
             colorScheme={scheme} // Google's light or dark styling // 'LIGHT' | 'DARK' | 'FOLLOW_SYSTEM': picks the Light/Dark style attached to the Map ID
             defaultCenter={position}
             defaultZoom={16}

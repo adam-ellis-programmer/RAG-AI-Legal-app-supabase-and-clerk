@@ -378,6 +378,7 @@ export const firmSettings = pgTable('firm_settings', {
   orgId: text('org_id').primaryKey(),
   locale: text('locale').notNull().default('en-GB'),
   timeZone: text('time_zone').notNull().default('Europe/London'),
+  currency: text('currency').notNull().default('GBP'), // ← add: ISO code for the firm's own billing
   updatedAt: timestamp('updated_at', { withTimezone: true })
     .defaultNow()
     .notNull(),

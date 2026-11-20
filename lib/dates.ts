@@ -7,7 +7,7 @@ export const DEFAULT_FORMAT: DateFormat = {
   timeZone: 'Europe/London',
 }
 
-// *** not in use **** 
+/** "23 Sept 2026": short dates in lists and tables. */
 export function formatDate(d: Date | string, f: DateFormat = DEFAULT_FORMAT) {
   return new Intl.DateTimeFormat(f.locale, {
     day: 'numeric',
@@ -17,8 +17,7 @@ export function formatDate(d: Date | string, f: DateFormat = DEFAULT_FORMAT) {
   }).format(new Date(d))
 }
 
-
-// *** not in use **** 
+/** "23 Sept 2026, 14:05": when something happened (activity, chat, research history). */
 export function formatDateTime(
   d: Date | string,
   f: DateFormat = DEFAULT_FORMAT,
@@ -35,7 +34,6 @@ export function formatDateTime(
 
 /** For `date` columns (issued_on, date_of_birth): a calendar day, not a moment.
  *  Always UTC, so the day never shifts; only the style follows the firm. */
-// *** not in use **** 
 export function formatDay(day: Date | string, f: DateFormat = DEFAULT_FORMAT) {
   return new Intl.DateTimeFormat(f.locale, {
     day: 'numeric',
@@ -53,43 +51,6 @@ export function formatLongDate(d: Date | string, f: DateFormat = DEFAULT_FORMAT)
   }).format(new Date(d))
 }
 
-// prettier-ignore
-// NOT IN USE HERE -- keep for reference
-const added = (d: Date) => new Date(d).toLocaleDateString('en-GB', {
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric',
-})
-
-// prettier-ignore
-// NOT IN USE HERE -- keep for reference
-const longDate = (d: Date) => d.toLocaleDateString('en-GB', {
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-})
-
-// NOT IN USE HERE -- keep for reference
-function formatDob(dob: string | null) {
-  if (!dob) return null
-  // 'YYYY-MM-DD' is read as UTC midnight, so format it in UTC too,
-  // otherwise a timezone shift could show the day before.
-  return new Date(dob).toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  })
-}
-
-// *** not in use ***
-const timeFormat = new Intl.DateTimeFormat('en-GB', {
-  hour: '2-digit',
-  minute: '2-digit',
-  day: 'numeric',
-  month: 'short',
-  timeZone: 'Europe/London', // the same on the server and in the browser, so no hydration mismatch
-})
 // The options a firm can choose from. A short, curated list is friendlier than
 // all 400+ time zones; add more as firms ask.
 export const LOCALE_OPTIONS = [
@@ -106,26 +67,10 @@ export const TIME_ZONE_OPTIONS = [
   { group: 'UK & Ireland', value: 'Europe/Dublin', label: 'Dublin' },
   { group: 'Europe', value: 'Europe/Paris', label: 'Paris' },
   { group: 'Europe', value: 'Europe/Berlin', label: 'Berlin' },
-  {
-    group: 'United States',
-    value: 'America/New_York',
-    label: 'New York (Eastern)',
-  },
-  {
-    group: 'United States',
-    value: 'America/Chicago',
-    label: 'Chicago (Central)',
-  },
-  {
-    group: 'United States',
-    value: 'America/Denver',
-    label: 'Denver (Mountain)',
-  },
-  {
-    group: 'United States',
-    value: 'America/Los_Angeles',
-    label: 'Los Angeles (Pacific)',
-  },
+  { group: 'United States', value: 'America/New_York', label: 'New York (Eastern)' },
+  { group: 'United States', value: 'America/Chicago', label: 'Chicago (Central)' },
+  { group: 'United States', value: 'America/Denver', label: 'Denver (Mountain)' },
+  { group: 'United States', value: 'America/Los_Angeles', label: 'Los Angeles (Pacific)' },
   { group: 'Canada', value: 'America/Toronto', label: 'Toronto' },
   { group: 'Canada', value: 'America/Vancouver', label: 'Vancouver' },
   { group: 'Australia & NZ', value: 'Australia/Sydney', label: 'Sydney' },
@@ -136,7 +81,46 @@ export const TIME_ZONE_OPTIONS = [
   { group: 'Asia & Middle East', value: 'Asia/Dubai', label: 'Dubai' },
 ] as const
 
-/**
- ** Why use time zone names like America/New_York instead of offsets like “UTC−5”: the name knows about daylight saving. New York is UTC−5 in winter and UTC−4 in summer, and Intl switches automatically on the right dates. A fixed offset would be an hour wrong for half the year.
- ** Why it has no database import: the settings form (a client component) needs these lists for its dropdowns. If this file imported db, the database code would get pulled into the browser bundle, the same problem you hit with lib/plan.ts.
+/*
+ * Why use time zone names like America/New_York instead of offsets like "UTC−5":
+ * the name knows about daylight saving. New York is UTC−5 in winter and UTC−4 in
+ * summer, and Intl switches automatically on the right dates. A fixed offset
+ * would be an hour wrong for half the year.
+ *
+ * Why this file has no database import: the settings form (a client component)
+ * needs these lists for its dropdowns. If this file imported db, the database
+ * code would be pulled into the browser bundle (the same problem as lib/plan.ts).
  */
+
+/* ---------------------------------------------------------------------------
+ * REFERENCE ONLY: the old hard-coded versions, from before per-firm settings.
+ * Each one is replaced by a function above. Kept as a comment so it isn't
+ * live code: nothing can call it, and the linter won't flag it as unused.
+ *
+ * added(d)      → replaced by formatDate(d, fmt)
+ * longDate(d)   → replaced by formatLongDate(d, fmt)
+ * formatDob(d)  → replaced by formatDay(d, fmt)
+ * timeFormat    → replaced by formatDateTime(d, fmt)
+ *
+ * const added = (d: Date) => new Date(d).toLocaleDateString('en-GB', {
+ *   day: 'numeric', month: 'short', year: 'numeric',
+ * })
+ *
+ * const longDate = (d: Date) => d.toLocaleDateString('en-GB', {
+ *   day: 'numeric', month: 'long', year: 'numeric',
+ * })
+ *
+ * function formatDob(dob: string | null) {
+ *   if (!dob) return null
+ *   // 'YYYY-MM-DD' is read as UTC midnight, so format it in UTC too,
+ *   // otherwise a timezone shift could show the day before.
+ *   return new Date(dob).toLocaleDateString('en-GB', {
+ *     day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',
+ *   })
+ * }
+ *
+ * const timeFormat = new Intl.DateTimeFormat('en-GB', {
+ *   hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short',
+ *   timeZone: 'Europe/London', // same on server and browser: no hydration mismatch
+ * })
+ * ------------------------------------------------------------------------- */

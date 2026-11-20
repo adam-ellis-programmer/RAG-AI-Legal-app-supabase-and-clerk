@@ -12,9 +12,17 @@ export const TONES = {
 export type Tone = keyof typeof TONES
 
 // prettier-ignore
-export function Badge({ tone, children }: { tone: Tone; children: React.ReactNode }) {
+export function Badge({
+  tone,
+  className = '',
+  children,
+}: {
+  tone: Tone
+  className?: string // for layout tweaks like 'shrink-0'; colours stay the Badge's job
+  children: React.ReactNode
+}) {
   return (
-    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ring-1 ${TONES[tone]}`}>
+    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ring-1 ${TONES[tone]} ${className}`}>
       {children}
     </span>
   )

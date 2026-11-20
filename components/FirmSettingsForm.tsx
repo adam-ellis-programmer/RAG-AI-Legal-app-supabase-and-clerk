@@ -1,37 +1,34 @@
 // components/FirmSettingsForm.tsx
 'use client'
-// The date settings form. A client component only for the live preview as you
-// change the dropdowns; saving goes through the server action.
+// The firm's display settings: dates and money. A client component only for the
+// live previews as you change the dropdowns; saving goes through the server action.
 import { useState } from 'react'
 import { SubmitButton } from '@/components/SubmitButton'
 import { saveFirmSettings } from '@/app/app/settings/actions'
-import {
-  formatDateTime,
-  LOCALE_OPTIONS,
-  TIME_ZONE_OPTIONS,
-  type DateFormat,
-} from '@/lib/dates'
+import { formatDateTime, LOCALE_OPTIONS, TIME_ZONE_OPTIONS } from '@/lib/dates'
+import { formatPence, CURRENCY_OPTIONS } from '@/lib/money'
+import type { FirmFormat } from '@/lib/firm-settings' // type only: no server code reaches the browser
 
-// A fixed moment, so the preview is identical on the server and in the browser.
-const SAMPLE = '2026-09-23T09:22:41Z'
+// Fixed samples, so the previews are identical on the server and in the browser.
+const SAMPLE_DATE = '2026-09-23T09:22:41Z'
+const SAMPLE_PENCE = 125050 // 1,250.50
 const groups = [...new Set(TIME_ZONE_OPTIONS.map((z) => z.group))]
 
 export function FirmSettingsForm({
   initial,
   canEdit,
 }: {
-  initial: DateFormat
+  initial: FirmFormat
   canEdit: boolean
 }) {
   const [locale, setLocale] = useState(initial.locale)
   const [timeZone, setTimeZone] = useState(initial.timeZone)
+  const [currency, setCurrency] = useState(initial.currency)
 
   return (
     <form action={saveFirmSettings} className='space-y-4'>
       <label className='block text-sm'>
-        <span className='mb-1 block font-medium text-slate-700'>
-          Date format
-        </span>
+        <span className='mb-1 block font-medium text-slate-700'>Date format</span>
         <select
           name='locale'
           value={locale}
@@ -68,12 +65,40 @@ export function FirmSettingsForm({
         </select>
       </label>
 
-      <p className='rounded-lg bg-slate-50 p-3 text-sm text-slate-600 ring-1 ring-slate-200'>
-        Dates will look like:{' '}
-        <strong className='text-slate-900'>
-          {formatDateTime(SAMPLE, { locale, timeZone })}
-        </strong>
-      </p>
+      <label className='block text-sm'>
+        <span className='mb-1 block font-medium text-slate-700'>Billing currency</span>
+        <select
+          name='currency'
+          value={currency}
+          onChange={(e) => setCurrency(e.target.value)}
+          disabled={!canEdit}
+          className='w-full rounded-md border border-slate-300 px-3 py-2'
+        >
+          {CURRENCY_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+        <span className='mt-1 block text-xs text-slate-500'>
+          For your invoices and billing. Changing it doesn&apos;t convert existing amounts.
+        </span>
+      </label>
+
+      <div className='space-y-1 rounded-lg bg-slate-50 p-3 text-sm text-slate-600 ring-1 ring-slate-200'>
+        <p>
+          Dates will look like:{' '}
+          <strong className='text-slate-900'>
+            {formatDateTime(SAMPLE_DATE, { locale, timeZone })}
+          </strong>
+        </p>
+        <p>
+          Amounts will look like:{' '}
+          <strong className='text-slate-900'>
+            {formatPence(SAMPLE_PENCE, { locale, currency })}
+          </strong>
+        </p>
+      </div>
 
       {canEdit ? (
         <SubmitButton
@@ -83,16 +108,14 @@ export function FirmSettingsForm({
           Save
         </SubmitButton>
       ) : (
-        <p className='text-sm text-slate-500'>
-          Only firm admins can change these.
-        </p>
+        <p className='text-sm text-slate-500'>Only firm admins can change these.</p>
       )}
     </form>
   )
 }
 
 /**
- * The live preview recalculates as you change the dropdowns, before saving, so an admin can see exactly what everyone will get.
- * SAMPLE is a fixed date, not new Date(), because the server and browser would each read the clock at slightly different moments. If the minute changed in between, React would complain the HTML didn’t match.
- * <optgroup> gives the grouped headings (“United States”, “Australia & NZ”…) inside the dropdown.
+ * The live previews recalculate as you change the dropdowns, before saving, so an admin can see exactly what everyone will get.
+ * SAMPLE_DATE is fixed, not new Date(), because the server and browser would each read the clock at slightly different moments; if the minute changed in between, React would complain the HTML didn't match.
+ * <optgroup> gives the grouped headings ("United States", "Australia & NZ"…) inside the dropdown.
  */

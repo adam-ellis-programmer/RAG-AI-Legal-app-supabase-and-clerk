@@ -11,7 +11,7 @@ import { formatPence, parsePounds } from '@/lib/money'
 import { logAction } from '@/lib/audit'
 import { getMatterAccess, getOrgMembers, isUuid } from '@/lib/matter-access'
 import { assertNotDemo } from '@/lib/demo'
-
+import { getFirmFormat } from '@/lib/firm-settings'
 const ROLES = ['admin', 'member'] as const
 type Role = (typeof ROLES)[number] // () -> first get the type of ROLES, then index into it. TypeScript
 
@@ -315,6 +315,8 @@ export async function addInvoice(
     })
     .returning({ id: invoices.id })
 
+  const fmt = await getFirmFormat(orgId) // the firm's currency, for the activity log text
+
   await logAction({
     orgId,
     userId,
@@ -322,7 +324,7 @@ export async function addInvoice(
     action: 'invoice.added',
     targetType: 'invoice',
     targetId: invoice.id,
-    detail: `${values.number} · ${formatPence(amountPence)}`,
+    detail: `${values.number} · ${formatPence(amountPence, fmt)}`,
   })
 
   revalidatePath(`/app/matters/${matterId}`)
@@ -331,10 +333,9 @@ export async function addInvoice(
 
 // ----- billing: mark an invoice as paid in full ----------
 
-
-// markInvoicePaid checks access against the invoice’s own case. 
-// The form only sends an invoice ID, so we look up which case it belongs to, 
-// then check you’re an admin there. 
+// markInvoicePaid checks access against the invoice’s own case.
+// The form only sends an invoice ID, so we look up which case it belongs to,
+// then check you’re an admin there.
 // Trusting a matterId sent from the form would let someone mark another case’s invoice as paid.
 
 // Owed is never stored. Marking an invoice paid just sets paid = amount, and “owed” (amount − paid) becomes zero automatically.
@@ -363,6 +364,8 @@ export async function markInvoicePaid(formData: FormData) {
     .set({ paidPence: invoice.amountPence })
     .where(eq(invoices.id, invoice.id))
 
+  const fmt = await getFirmFormat(orgId) // the firm's currency, for the activity log text
+
   await logAction({
     orgId,
     userId,
@@ -370,7 +373,7 @@ export async function markInvoicePaid(formData: FormData) {
     action: 'invoice.paid',
     targetType: 'invoice',
     targetId: invoice.id,
-    detail: `${invoice.number} · ${formatPence(invoice.amountPence)}`,
+    detail: `${invoice.number} · ${formatPence(invoice.amountPence, fmt)}`,
   })
 
   revalidatePath(`/app/matters/${invoice.matterId}`)

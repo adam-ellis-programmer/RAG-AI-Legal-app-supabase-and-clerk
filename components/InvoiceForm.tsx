@@ -10,15 +10,29 @@ import {
 } from '@/app/app/matters/[id]/actions'
 import { SubmitButton } from '@/components/SubmitButton'
 
+import { currencySymbol } from '@/lib/money'
+import type { FirmFormat } from '@/lib/firm-settings' // type only: no database code reaches the browser
+
+/** import type matters here. This file runs in the browser, and lib/firm-settings.ts
+ * imports the database. A plain import could pull that into the browser bundle.
+ * import type is deleted at build time, so only the type is used. */
+
 const input =
   'w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400'
 
-export function InvoiceForm({ matterId }: { matterId: string }) {
+export function InvoiceForm({
+  matterId,
+  fmt,
+}: {
+  matterId: string
+  fmt: FirmFormat // for the currency symbol in the amount labels
+}) {
   const [state, formAction] = useActionState<InvoiceFormState, FormData>(
     addInvoice,
     {},
   )
   const v = (key: string) => state.values?.[key] ?? ''
+  const symbol = currencySymbol(fmt) // "£", "$", "€"…
 
   // inputMode='decimal' shows a number keypad on phones while still allowing “1,250.50” to be typed. A type='number' box would reject the comma.
   return (
@@ -39,14 +53,14 @@ export function InvoiceForm({ matterId }: { matterId: string }) {
       <input
         name='amount'
         inputMode='decimal'
-        placeholder='Amount (£)'
+        placeholder={`Amount (${symbol})`}
         defaultValue={v('amount')}
         className={input}
       />
       <input
         name='paid'
         inputMode='decimal'
-        placeholder='Paid so far (£, optional)'
+        placeholder={`Paid so far (${symbol}, optional)`}
         defaultValue={v('paid')}
         className={input}
       />
@@ -57,7 +71,9 @@ export function InvoiceForm({ matterId }: { matterId: string }) {
         </p>
       )}
       {state.saved && (
-        <p className='text-sm text-emerald-700 sm:col-span-2'>Invoice added.</p>
+        <p className='text-sm text-emerald-700 dark:text-emerald-400 sm:col-span-2'>
+          Invoice added.
+        </p>
       )}
 
       <SubmitButton

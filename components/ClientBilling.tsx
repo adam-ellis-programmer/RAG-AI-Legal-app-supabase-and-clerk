@@ -2,17 +2,18 @@
 // Money across this client's cases, limited to the cases the viewer is admin on.
 import Link from 'next/link'
 import { formatPence } from '@/lib/money'
+import type { FirmFormat } from '@/lib/firm-settings'
 import { Badge } from './Badge'
 
 type Row = { matterId: string; title: string; charged: number; paid: number }
 
-export function ClientBilling({ rows }: { rows: Row[] }) {
+export function ClientBilling({ rows, fmt }: { rows: Row[]; fmt: FirmFormat }) {
   const charged = rows.reduce((s, r) => s + r.charged, 0)
   const paid = rows.reduce((s, r) => s + r.paid, 0)
   const owed = charged - paid
 
   return (
-    <section className='mb-8 rounded-xl border border-slate-200 p-4'>
+    <section className='rounded-xl border border-slate-200 p-4'>
       <h2 className='text-sm font-semibold text-slate-700'>Billing</h2>
       <p className='mb-3 text-xs text-slate-500'>
         Totals from the cases you&apos;re an admin on.
@@ -29,9 +30,9 @@ export function ClientBilling({ rows }: { rows: Row[] }) {
           <div key={label} className='rounded-lg border border-slate-200 p-3'>
             <dt className='text-xs text-slate-500'>{label}</dt>
             <dd
-              className={`mt-1 font-medium ${label === 'Owed' && owed > 0 ? 'text-amber-700' : 'text-slate-900'}`}
+              className={`mt-1 font-medium ${label === 'Owed' && owed > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-slate-900'}`}
             >
-              {formatPence(pence)}
+              {formatPence(pence, fmt)}
             </dd>
           </div>
         ))}
@@ -48,13 +49,11 @@ export function ClientBilling({ rows }: { rows: Row[] }) {
               >
                 {r.title}
               </Link>
-              <span className='text-slate-500'>{formatPence(r.charged)}</span>
+              <span className='text-slate-500'>{formatPence(r.charged, fmt)}</span>
               {caseOwed > 0 ? (
-                <Badge tone='warning'>{formatPence(caseOwed)} owed</Badge>
+                <Badge tone='warning'>{formatPence(caseOwed, fmt)} owed</Badge>
               ) : (
-                <span className='rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700'>
-                  <Badge tone='success'>Paid</Badge>
-                </span>
+                <Badge tone='success'>Paid</Badge>
               )}
             </li>
           )

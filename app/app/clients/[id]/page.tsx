@@ -12,6 +12,8 @@ import { SubmitButton } from '@/components/SubmitButton'
 import { isDemoOrg } from '@/lib/demo'
 import { ClientDetails } from '@/components/ClientDetails'
 import { getFirmFormat } from '@/lib/firm-settings'
+import { Badge } from '@/components/Badge'
+
 export default async function ClientDetailPage({
   params,
   searchParams,
@@ -115,7 +117,7 @@ export default async function ClientDetailPage({
       )}
 
       {/* ----- Column 2: billing (cases where you're an admin) ----- */}
-      {billing.length > 0 && <ClientBilling rows={billing} />}
+      {billing.length > 0 && <ClientBilling rows={billing} fmt={fmt} />}
 
       {/* ----- Column 3: cases, with the create form on top ----- */}
       <section>
@@ -174,9 +176,12 @@ export default async function ClientDetailPage({
                     <span className='font-medium text-slate-900'>
                       {m.title}
                     </span>
-                    <span className='shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600'>
+                    <Badge
+                      tone={m.status === 'open' ? 'success' : 'neutral'}
+                      className='shrink-0'
+                    >
                       {m.status}
-                    </span>
+                    </Badge>
                   </div>
                   {m.reference && (
                     <span className='mt-1 block text-xs text-slate-400'>

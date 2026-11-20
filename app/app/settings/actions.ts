@@ -7,6 +7,7 @@ import { db } from '@/lib/db'
 import { firmSettings } from '@/lib/schema'
 import { isDemoOrg } from '@/lib/demo'
 import { LOCALE_OPTIONS, TIME_ZONE_OPTIONS } from '@/lib/dates'
+import { CURRENCY_OPTIONS } from '@/lib/money'
 
 export async function saveFirmSettings(formData: FormData) {
   const { orgId, orgRole } = await auth()
@@ -17,23 +18,27 @@ export async function saveFirmSettings(formData: FormData) {
 
   const locale = String(formData.get('locale') ?? '')
   const timeZone = String(formData.get('timeZone') ?? '')
+  const currency = String(formData.get('currency') ?? '')
   // Only values from our own lists: a tampered form can't store anything else.
   if (!LOCALE_OPTIONS.some((o) => o.value === locale)) throw new Error('Unknown date format')
   if (!TIME_ZONE_OPTIONS.some((o) => o.value === timeZone)) throw new Error('Unknown time zone')
+  if (!CURRENCY_OPTIONS.some((o) => o.value === currency)) throw new Error('Unknown currency')
 
   const now = new Date()
   await db
     .insert(firmSettings)
-    .values({ orgId, locale, timeZone, updatedAt: now })
-    .onConflictDoUpdate({ target: firmSettings.orgId, set: { locale, timeZone, updatedAt: now } })
+    .values({ orgId, locale, timeZone, currency, updatedAt: now })
+    .onConflictDoUpdate({
+      target: firmSettings.orgId,
+      set: { locale, timeZone, currency, updatedAt: now },
+    })
 
   revalidatePath('/app', 'layout') // every page re-renders with the new format
   redirect('/app/settings?saved=1')
 }
 
-
 /**
- * orgRole comes from Clerk’s auth(): 'org:admin' or 'org:member' for the active firm.
- * Checking against the lists means even a hand-edited form can only ever store a value you’ve offered. Never trust what a form sends.
+ * orgRole comes from Clerk's auth(): 'org:admin' or 'org:member' for the active firm.
+ * Checking against the lists means even a hand-edited form can only ever store a value you've offered. Never trust what a form sends.
  * revalidatePath('/app', 'layout') rebuilds every page under /app, so the new format shows everywhere straight away.
  */

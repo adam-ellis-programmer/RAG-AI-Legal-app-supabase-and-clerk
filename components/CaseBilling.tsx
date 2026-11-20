@@ -4,8 +4,10 @@ import { formatPence } from '@/lib/money'
 import { markInvoicePaid } from '@/app/app/matters/[id]/actions'
 import { SubmitButton } from '@/components/SubmitButton'
 import { InvoiceForm } from '@/components/InvoiceForm'
-import { formatDay, type DateFormat } from '@/lib/dates'
+import { formatDay } from '@/lib/dates'
 import { Badge } from './Badge'
+
+import type { FirmFormat } from '@/lib/firm-settings'
 
 type Invoice = {
   id: string
@@ -24,7 +26,7 @@ export function CaseBilling({
   matterId: string
   invoices: Invoice[]
   canEdit: boolean
-  fmt: DateFormat
+  fmt: FirmFormat // dates AND money: locale, timeZone, currency
 }) {
   // reduce adds the invoices up: it starts at 0 and adds each invoice’s amount in turn.
   // Because every amount is whole pence, the totals are exact.
@@ -48,9 +50,9 @@ export function CaseBilling({
           <div key={label} className='rounded-lg border border-slate-200 p-3'>
             <dt className='text-xs text-slate-500'>{label}</dt>
             <dd
-              className={`mt-1 font-medium ${label === 'Owed' && owed > 0 ? 'text-amber-700' : 'text-slate-900'}`}
+              className={`mt-1 font-medium ${label === 'Owed' && owed > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-slate-900'}`}
             >
-              {formatPence(pence as number)}
+              {formatPence(pence as number, fmt)}
             </dd>
           </div>
         ))}
@@ -73,12 +75,14 @@ export function CaseBilling({
                   </span>
                 </span>
                 <span className='text-slate-900'>
-                  {formatPence(inv.amountPence)}
+                  {formatPence(inv.amountPence, fmt)}
                 </span>
                 {outstanding === 0 ? (
                   <Badge tone='success'>Paid</Badge>
                 ) : (
-                  <Badge tone='warning'>{formatPence(outstanding)} owed</Badge>
+                  <Badge tone='warning'>
+                    {formatPence(outstanding, fmt)} owed
+                  </Badge>
                 )}
                 {canEdit && outstanding > 0 && (
                   <form action={markInvoicePaid}>
@@ -102,7 +106,7 @@ export function CaseBilling({
           <summary className='cursor-pointer text-sm text-slate-600 hover:text-slate-900'>
             Add an invoice
           </summary>
-          <InvoiceForm matterId={matterId} />
+          <InvoiceForm matterId={matterId} fmt={fmt} />
         </details>
       )}
     </section>
