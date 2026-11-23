@@ -1,6 +1,6 @@
 // components/FirmSettingsForm.tsx
 'use client'
-// The firm's display settings: dates and money. A client component only for the
+// The firm-wide settings: dates, money and chat notifications. A client component only for the
 // live previews as you change the dropdowns; saving goes through the server action.
 import { useState } from 'react'
 import { SubmitButton } from '@/components/SubmitButton'
@@ -90,8 +90,6 @@ export function FirmSettingsForm({
         </span>
       </label>
 
-
-           
       {/* ----------- chat notification options ----------------- */}
        <label className='block text-sm'>
         <span className='mb-1 block font-medium text-slate-700'>Chat notifications</span>
