@@ -45,7 +45,7 @@ export async function startDirectMessage(formData: FormData) {
       ])
       return created.id
     }
-
+    //
     // Already exists (you've messaged them before, or they messaged you): reuse it.
     const [existing] = await tx
       .select({ id: chatConversations.id })
@@ -65,8 +65,6 @@ export async function startDirectMessage(formData: FormData) {
   redirect(`/app/chat/${conversationId}`)
 }
 
-
-
 // "I've read this conversation up to now." Called when you open one, and as messages arrive while it's open.
 export async function markConversationRead(conversationId: string) {
   const { userId, orgId } = await auth()
@@ -78,8 +76,11 @@ export async function markConversationRead(conversationId: string) {
   await db
     .insert(chatReads)
     .values({ conversationId: c.id, userId, lastReadAt: now })
-    .onConflictDoUpdate({ target: [chatReads.conversationId, chatReads.userId], set: { lastReadAt: now } })
-    // It’s an upsert, like syncSubscription: the first time it creates the row, and after that it updates the time.
+    .onConflictDoUpdate({
+      target: [chatReads.conversationId, chatReads.userId],
+      set: { lastReadAt: now },
+    })
+  // It’s an upsert, like syncSubscription: the first time it creates the row, and after that it updates the time.
 }
 
 /**
