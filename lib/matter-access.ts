@@ -4,7 +4,7 @@ import { and, eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { matters, matterMembers } from '@/lib/schema'
 import { displayName } from '@/lib/audit'
-
+import { cache } from 'react'
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 export const isUuid = (v: string) => UUID_RE.test(v)
@@ -48,7 +48,11 @@ export async function getMatterAccess(matterId: string) {
 export type OrgMember = { userId: string; name: string; email: string }
 
 /** Everyone in the firm, resolved via Clerk (the source of truth for who is in the org). */
-export async function getOrgMembers(orgId: string): Promise<OrgMember[]> {
+// cache(): within one request, the first call asks Clerk; any later call with the
+// same orgId (layout + page, several components) gets the same result, no extra network call.
+// prettier-ignore
+export const getOrgMembers = cache(async (orgId: string): Promise<OrgMember[]> => {
+
   const client = await clerkClient()
   const { data } = await client.organizations.getOrganizationMembershipList({
     organizationId: orgId,
@@ -59,8 +63,7 @@ export async function getOrgMembers(orgId: string): Promise<OrgMember[]> {
     const u = m.publicUserData
     if (!u?.userId) return []
 
-    const name =
-      displayName(u.firstName, u.lastName, u.identifier) ?? u.identifier
+    const name = displayName(u.firstName, u.lastName, u.identifier) ?? u.identifier
     return [{ userId: u.userId, name, email: u.identifier }]
   })
-}
+})

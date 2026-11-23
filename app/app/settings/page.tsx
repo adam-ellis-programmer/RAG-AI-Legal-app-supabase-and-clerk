@@ -2,7 +2,7 @@
 import { notFound } from 'next/navigation'
 import { auth } from '@clerk/nextjs/server'
 import { isDemoOrg } from '@/lib/demo'
-import { getFirmFormat } from '@/lib/firm-settings'
+import { getChatPreviewLength, getFirmFormat } from '@/lib/firm-settings'
 import { FirmSettingsForm } from '@/components/FirmSettingsForm'
 import { ThemePicker } from '@/components/ThemePicker'
 import { Notice } from '@/components/Notice'
@@ -15,7 +15,11 @@ export default async function SettingsPage({
   const { orgId, orgRole } = await auth()
   if (!orgId) notFound()
 
-  const [fmt, sp] = await Promise.all([getFirmFormat(orgId), searchParams])
+  const [fmt, chatPreviewLength, sp] = await Promise.all([
+    getFirmFormat(orgId),
+    getChatPreviewLength(orgId),
+    searchParams,
+  ])
   const canEdit = orgRole === 'org:admin' && !isDemoOrg(orgId)
 
   return (
@@ -32,9 +36,12 @@ export default async function SettingsPage({
 
       <section className='mt-8 rounded-xl border border-slate-200 p-5'>
         <h2 className='mb-4 text-sm font-semibold text-slate-700'>
-         Dates, times and money
+          Dates, times and money
         </h2>
-        <FirmSettingsForm initial={fmt} canEdit={canEdit} />
+        <FirmSettingsForm
+          initial={{ ...fmt, chatPreviewLength }}
+          canEdit={canEdit}
+        />
       </section>
 
       <section className='mt-8 rounded-xl border border-slate-200 p-5'>

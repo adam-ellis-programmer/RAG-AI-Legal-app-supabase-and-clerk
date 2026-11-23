@@ -8,7 +8,7 @@ import { saveFirmSettings } from '@/app/app/settings/actions'
 import { formatDateTime, LOCALE_OPTIONS, TIME_ZONE_OPTIONS } from '@/lib/dates'
 import { formatPence, CURRENCY_OPTIONS } from '@/lib/money'
 import type { FirmFormat } from '@/lib/firm-settings' // type only: no server code reaches the browser
-
+import { PREVIEW_LENGTH_OPTIONS } from '@/lib/chat-events'
 // Fixed samples, so the previews are identical on the server and in the browser.
 const SAMPLE_DATE = '2026-09-23T09:22:41Z'
 const SAMPLE_PENCE = 125050 // 1,250.50
@@ -18,7 +18,7 @@ export function FirmSettingsForm({
   initial,
   canEdit,
 }: {
-  initial: FirmFormat
+  initial: FirmFormat & { chatPreviewLength: number }
   canEdit: boolean
 }) {
   const [locale, setLocale] = useState(initial.locale)
@@ -28,7 +28,9 @@ export function FirmSettingsForm({
   return (
     <form action={saveFirmSettings} className='space-y-4'>
       <label className='block text-sm'>
-        <span className='mb-1 block font-medium text-slate-700'>Date format</span>
+        <span className='mb-1 block font-medium text-slate-700'>
+          Date format
+        </span>
         <select
           name='locale'
           value={locale}
@@ -66,7 +68,9 @@ export function FirmSettingsForm({
       </label>
 
       <label className='block text-sm'>
-        <span className='mb-1 block font-medium text-slate-700'>Billing currency</span>
+        <span className='mb-1 block font-medium text-slate-700'>
+          Billing currency
+        </span>
         <select
           name='currency'
           value={currency}
@@ -81,7 +85,31 @@ export function FirmSettingsForm({
           ))}
         </select>
         <span className='mt-1 block text-xs text-slate-500'>
-          For your invoices and billing. Changing it doesn&apos;t convert existing amounts.
+          For your invoices and billing. Changing it doesn&apos;t convert
+          existing amounts.
+        </span>
+      </label>
+
+
+           
+      {/* ----------- chat notification options ----------------- */}
+       <label className='block text-sm'>
+        <span className='mb-1 block font-medium text-slate-700'>Chat notifications</span>
+        <select
+          name='chatPreviewLength'
+          defaultValue={initial.chatPreviewLength}
+          disabled={!canEdit}
+          className='w-full rounded-md border border-slate-300 px-3 py-2'
+        >
+          {PREVIEW_LENGTH_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+        <span className='mt-1 block text-xs text-slate-500'>
+          How much of a message appears in pop-up notifications. Off keeps message text off
+          screens that others might see.
         </span>
       </label>
 
@@ -108,7 +136,9 @@ export function FirmSettingsForm({
           Save
         </SubmitButton>
       ) : (
-        <p className='text-sm text-slate-500'>Only firm admins can change these.</p>
+        <p className='text-sm text-slate-500'>
+          Only firm admins can change these.
+        </p>
       )}
     </form>
   )

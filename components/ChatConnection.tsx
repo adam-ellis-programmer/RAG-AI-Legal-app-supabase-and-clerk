@@ -15,13 +15,14 @@ import {
 import { useRouter } from 'next/navigation'
 import { io, type Socket } from 'socket.io-client'
 import { useAuth } from '@clerk/nextjs'
-import type {
-  ChatMessage,
-  ClientToServerEvents,
-  ServerToClientEvents,
+import {
+  previewText,
+  type ChatMessage,
+  type ClientToServerEvents,
+  type ServerToClientEvents,
 } from '@/lib/chat-events'
 import { markConversationRead } from '@/app/app/chat/actions'
-
+import { toast } from 'sonner'
 // The browser's order: first what we LISTEN to, then what we SEND.
 export type ChatSocket = Socket<ServerToClientEvents, ClientToServerEvents>
 
@@ -52,10 +53,14 @@ export function ChatConnection({
   children,
   initialUnread,
   conversationIds,
+  names,
+  previewLength,
 }: {
   children: ReactNode
   initialUnread: Record<string, number> // counted on the server at page load
   conversationIds: string[] // the chats you're in, as of page load
+  names: Record<string, string> // userId → name, for toasts
+  previewLength: number // the firm's setting: 0 = name only
 }) {
   const { isSignedIn, orgId, userId, getToken } = useAuth()
   const router = useRouter()
@@ -75,6 +80,15 @@ export function ChatConnection({
   const knownRef = useRef(new Set(conversationIds))
   const userIdRef = useRef(userId)
   const getTokenRef = useRef(getToken)
+
+  const namesRef = useRef(names)
+  const previewRef = useRef(previewLength)
+
+  useEffect(() => {
+    namesRef.current = names
+    previewRef.current = previewLength
+  }, [names, previewLength])
+
   useEffect(() => {
     knownRef.current = new Set(conversationIds)
   }, [conversationIds])
@@ -126,8 +140,27 @@ export function ChatConnection({
         ...prev,
         [m.conversationId]: (prev[m.conversationId] ?? 0) + 1,
       }))
-    })
 
+      /** toast never appears for an open chat */
+      // A toast, so you notice it on any page. The firm decides how much text it shows.
+      const name = namesRef.current[m.senderId] ?? 'A colleague'
+      const max = previewRef.current
+      const preview = max > 0 && !m.removed ? previewText(m.body, max) : null
+      // ---- toast -------
+      toast(preview ? name : `New message from ${name}`, {
+        id: m.conversationId, // one toast per conversation: a new message updates it instead of stacking
+        description: preview ?? undefined,
+        action: {
+          label: 'Open',
+          onClick: () => router.push(`/app/chat/${m.conversationId}`),
+        },
+
+        /** Why id: m.conversationId:
+         * if Daniel sends five quick messages, Sonner
+         * replaces the toast with the same id instead of
+         * piling up five, so you see the latest one. */
+      })
+    })
 
     s.on('presence', (ids) => setOnline(new Set(ids)))
 
@@ -140,9 +173,16 @@ export function ChatConnection({
   }, [isSignedIn, orgId, router])
 
   const totalUnread = Object.values(unread).reduce((sum, n) => sum + n, 0)
-  
+
   const value = useMemo(
-    () => ({ socket, unread, totalUnread, online, setOpenConversation, markRead }),
+    () => ({
+      socket,
+      unread,
+      totalUnread,
+      online,
+      setOpenConversation,
+      markRead,
+    }),
     [socket, unread, totalUnread, online, setOpenConversation, markRead],
   )
 

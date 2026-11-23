@@ -379,6 +379,8 @@ export const firmSettings = pgTable('firm_settings', {
   locale: text('locale').notNull().default('en-GB'),
   timeZone: text('time_zone').notNull().default('Europe/London'),
   currency: text('currency').notNull().default('GBP'), // ← add: ISO code for the firm's own billing
+  // Chat toasts: how many characters of a message to show. 0 = name only (the default, for confidentiality).
+  chatPreviewLength: integer('chat_preview_length').notNull().default(0),
   updatedAt: timestamp('updated_at', { withTimezone: true })
     .defaultNow()
     .notNull(),

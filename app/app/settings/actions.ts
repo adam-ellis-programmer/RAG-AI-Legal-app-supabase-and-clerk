@@ -8,7 +8,9 @@ import { firmSettings } from '@/lib/schema'
 import { isDemoOrg } from '@/lib/demo'
 import { LOCALE_OPTIONS, TIME_ZONE_OPTIONS } from '@/lib/dates'
 import { CURRENCY_OPTIONS } from '@/lib/money'
+import { PREVIEW_LENGTH_OPTIONS } from '@/lib/chat-events'
 
+// prettier-ignore
 export async function saveFirmSettings(formData: FormData) {
   const { orgId, orgRole } = await auth()
   if (!orgId) throw new Error('No firm selected')
@@ -19,7 +21,9 @@ export async function saveFirmSettings(formData: FormData) {
   const locale = String(formData.get('locale') ?? '')
   const timeZone = String(formData.get('timeZone') ?? '')
   const currency = String(formData.get('currency') ?? '')
+  const chatPreviewLength = Number(formData.get('chatPreviewLength') ?? 0)
   // Only values from our own lists: a tampered form can't store anything else.
+  if (!PREVIEW_LENGTH_OPTIONS.some((o) => o.value === chatPreviewLength)) throw new Error('Unknown preview length')
   if (!LOCALE_OPTIONS.some((o) => o.value === locale)) throw new Error('Unknown date format')
   if (!TIME_ZONE_OPTIONS.some((o) => o.value === timeZone)) throw new Error('Unknown time zone')
   if (!CURRENCY_OPTIONS.some((o) => o.value === currency)) throw new Error('Unknown currency')
@@ -27,10 +31,10 @@ export async function saveFirmSettings(formData: FormData) {
   const now = new Date()
   await db
     .insert(firmSettings)
-    .values({ orgId, locale, timeZone, currency, updatedAt: now })
+    .values({ orgId, locale, timeZone, currency, updatedAt: now, chatPreviewLength })
     .onConflictDoUpdate({
       target: firmSettings.orgId,
-      set: { locale, timeZone, currency, updatedAt: now },
+      set: { locale, timeZone, currency, updatedAt: now, chatPreviewLength },
     })
 
   revalidatePath('/app', 'layout') // every page re-renders with the new format
