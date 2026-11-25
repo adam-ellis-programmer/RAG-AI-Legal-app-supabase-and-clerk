@@ -60,7 +60,12 @@ export async function startDirectMessage(formData: FormData) {
     return existing.id
   })
 
-  //   'layout' means “rebuild the layout and everything under it”, so the left-hand list is refreshed too.
+  /**
+   *
+   * we use revalidate path as layout data will be out of date
+   * 'layout' means “rebuild the layout and everything under it”, so the left-hand list is refreshed too.
+   *
+   */
   revalidatePath('/app/chat', 'layout') // the list must now include this DM
   redirect(`/app/chat/${conversationId}`)
 }

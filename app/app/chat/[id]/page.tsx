@@ -16,7 +16,7 @@ import {
 import { getOrgMembers } from '@/lib/matter-access'
 import { ChatThread } from '@/components/ChatThread'
 import { OnlineDot } from '@/components/OnlineDot'
-
+  
 import { isDemoOrg } from '@/lib/demo'
 import { startDirectMessage } from '@/app/app/chat/actions'
 import { SubmitButton } from '@/components/SubmitButton'
@@ -71,7 +71,8 @@ export default async function ConversationPage({
 
   return (
     <div className='grid gap-6 lg:grid-cols-[1fr_260px]'>
-      <section className='flex flex-col rounded-xl border border-slate-200'>
+      {/* -----------  messaging box ----------------------------------------------- */}
+      <section className='flex flex-col rounded-xl border border-slate-200 '>
         <header className='border-b border-slate-200 px-4 py-3'>
           <h2 className='font-medium text-slate-900'>{title}</h2>
         </header>
@@ -84,8 +85,10 @@ export default async function ConversationPage({
           blockedReason={blockedReason}
           fmt={fmt}
         />
+        {/* -------------- end ---------------------------- */}
       </section>
 
+      {/* ---------------------- shows case team / who is in conversation --------------------------------  */}
       <aside className='rounded-xl border border-slate-200 p-4 text-sm'>
         <h3 className='mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500'>
           {conversation.type === 'case' ? 'Case team' : 'In this conversation'}
@@ -101,7 +104,8 @@ export default async function ConversationPage({
           ))}
         </ul> */}
 
-        <ul className='space-y-0.5'>
+        {/*  */}
+        <ul className='space-y-0.5 '>
           {people.map((id) => {
             const name =
               id === userId ? 'You' : (names[id] ?? 'Former firm member')
@@ -147,6 +151,7 @@ export default async function ConversationPage({
             Open case →
           </Link>
         )}
+        {/* -------------- end ---------------------------- */}
       </aside>
     </div>
   )

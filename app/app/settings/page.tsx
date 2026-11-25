@@ -36,7 +36,7 @@ export default async function SettingsPage({
 
       <section className='mt-8 rounded-xl border border-slate-200 p-5'>
         <h2 className='mb-4 text-sm font-semibold text-slate-700'>
-          Dates, times and money
+          Firm-wide settings
         </h2>
         <FirmSettingsForm
           initial={{ ...fmt, chatPreviewLength }}

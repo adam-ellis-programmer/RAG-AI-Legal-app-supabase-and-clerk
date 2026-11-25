@@ -19,7 +19,8 @@ import { SubmitButton } from '@/components/SubmitButton'
 import { isDemoOrg } from '@/lib/demo'
 import { startDirectMessage } from './actions'
 import { OnlineDot } from '@/components/OnlineDot'
-
+// if there is not a case then the other file runs and re-directs
+// to this file ???
 export default async function ChatLayout({
   children,
 }: {
@@ -77,7 +78,7 @@ export default async function ChatLayout({
     <main className='mx-auto grid max-w-7xl gap-6 px-6 py-10 lg:grid-cols-[280px_1fr]'>
       <aside className='space-y-6'>
         <h1 className='font-serif text-2xl text-slate-900'>Chat</h1>
-
+        {/*  ---------- case chats ------------------- */}
         <section>
           <h2 className='mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500'>
             Case chats
@@ -91,8 +92,8 @@ export default async function ChatLayout({
               {myCases.map((c) => (
                 <li key={c.matterId}>
                   <ChatListLink
-                    // Straight to the chat if it exists; otherwise create it first.
                     href={
+                      // Straight to the chat if it exists; otherwise create it first.
                       c.conversationId
                         ? `/app/chat/${c.conversationId}`
                         : `/app/chat/case/${c.matterId}`
@@ -107,7 +108,9 @@ export default async function ChatLayout({
           )}
         </section>
 
-        <section >
+        {/*  ---------- direct msgs ------------------- */}
+
+        <section>
           <h2 className='mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500'>
             Direct messages
           </h2>
@@ -119,10 +122,14 @@ export default async function ChatLayout({
                 const otherId = d.dmKey?.split(':').find((id) => id !== userId)
                 return (
                   <li key={d.conversationId}>
-                    <ChatListLink href={`/app/chat/${d.conversationId}`} conversationId={d.conversationId}>
+                    <ChatListLink
+                      href={`/app/chat/${d.conversationId}`}
+                      conversationId={d.conversationId}
+                    >
                       <span className='inline-flex items-center gap-2'>
                         {otherId && <OnlineDot userId={otherId} />}
-                        {(otherId && nameOf.get(otherId)) ?? 'Former firm member'}
+                        {(otherId && nameOf.get(otherId)) ??
+                          'Former firm member'}
                       </span>
                     </ChatListLink>
                   </li>

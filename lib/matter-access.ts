@@ -67,3 +67,11 @@ export const getOrgMembers = cache(async (orgId: string): Promise<OrgMember[]> =
     return [{ userId: u.userId, name, email: u.identifier }]
   })
 })
+
+
+/**
+ * What cache() does, precisely
+ * It remembers results for one request only (one page load, one form submission). The next request starts fresh, so if someone joins the firm, the next page load sees them.
+ * It matches on the arguments: getOrgMembers('org_A') and getOrgMembers('org_B') are separate entries.
+ * It stores the promise, not just the result. So even when the layout and page call it at the same moment (before the first call has finished), the second one waits for the first rather than making its own request.
+ */
