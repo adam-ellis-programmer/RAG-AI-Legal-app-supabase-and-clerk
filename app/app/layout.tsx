@@ -13,6 +13,8 @@ import { getOrgMembers } from '@/lib/matter-access'
 import { getChatPreviewLength } from '@/lib/firm-settings'
 import { AppToaster } from '@/components/AppToaster'
 
+import { DesktopNav, MobileMenu } from '@/components/AppNav'
+
 // once we are on the app page with uploads etc
 // we have a different LAYOUT to all the other
 // home pages etc
@@ -27,8 +29,8 @@ export default async function AppLayout({
   // Your chats and unread counts (badge + live updates), plus what toasts need:
   // colleagues' names and the firm's preview setting. Fetched together, not one after another.
 
-  /** Promise.all runs the three lookups at the same time, so the layout waits for the slowest 
-   * one, not all three in a row. getOrgMembers is cache()d, so pages that also 
+  /** Promise.all runs the three lookups at the same time, so the layout waits for the slowest
+   * one, not all three in a row. getOrgMembers is cache()d, so pages that also
    * call it during the same request don't hit Clerk twice. */
   const [conversationIds, members, previewLength] = orgId
     ? await Promise.all([
@@ -37,7 +39,7 @@ export default async function AppLayout({
         getChatPreviewLength(orgId),
       ])
     : [[], [], 0]
-    
+
   const initialUnread = await unreadCounts(db, userId, conversationIds)
   const names = Object.fromEntries(members.map((m) => [m.userId, m.name]))
 
@@ -55,72 +57,33 @@ export default async function AppLayout({
         <header className='sticky top-0 z-50 border-b border-slate-200 bg-white'>
           <div className='mx-auto flex h-16 max-w-5xl items-center justify-between px-6'>
             <div className='flex items-center gap-6'>
-              <Link
-                href='/'
-                className='font-serif text-lg font-semibold text-slate-900'
-              >
+              <Link href='/' className='font-serif text-lg font-semibold text-slate-900'>
                 Citewise<span className='text-slate-400'>.</span>
               </Link>
-              <nav className='flex items-center gap-4 text-sm'>
-                <Link
-                  href='/app/clients'
-                  className='text-slate-600 transition hover:text-slate-900'
-                >
-                  Clients
-                </Link>
-                <Link
-                  href='/app'
-                  className='text-slate-600 transition hover:text-slate-900'
-                >
-                  Assistant
-                </Link>
-                <Link
-                  href='/app/documents'
-                  className='text-slate-600 transition hover:text-slate-900'
-                >
-                  Documents
-                </Link>
-
-                <Link
-                  href='/app/chat'
-                  className='flex items-center text-slate-600 transition hover:text-slate-900'
-                >
-                  Chat
-                  <ChatBadge />
-                </Link>
-
-                <Link
-                  className='text-slate-600 transition hover:text-slate-900'
-                  href='/app/plan'
-                >
-                  Plan
-                </Link>
-
-                <Link
-                  href='/app/settings'
-                  className='text-slate-600 transition hover:text-slate-900'
-                >
-                  Settings
-                </Link>
-              </nav>
+              <DesktopNav />
             </div>
-            <div className='flex items-center gap-4'>
+
+            <div className='flex items-center gap-3'>
               {isDemo ? (
                 // Shared demo account: no firm switcher and no account menu.
                 <>
-                  <span className='text-sm text-slate-500'>Demo firm</span>
+                  <span className='hidden text-sm text-slate-500 lg:inline'>Demo firm</span>
                   <SignOutButton redirectUrl='/'>
-                    <button className='rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-50'>
+                    <button className='hidden rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-50 lg:block'>
                       Leave demo
                     </button>
                   </SignOutButton>
                 </>
               ) : (
                 <>
-                  <OrganizationSwitcher hidePersonal />
+                  {/* On small screens the switcher moves into the menu panel */}
+                  <div className='hidden lg:block'>
+                    <OrganizationSwitcher hidePersonal />
+                  </div>
                   <UserButton />
                 </>
               )}
+              <MobileMenu isDemo={isDemo} />
             </div>
           </div>
         </header>
