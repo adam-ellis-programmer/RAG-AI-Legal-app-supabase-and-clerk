@@ -1,8 +1,6 @@
 // app/api/matters/[id]/query/route.ts
-import { anthropic } from '@ai-sdk/anthropic'
 import { generateText, streamText } from 'ai' // -- from the Vercel AI SDK
 import { and, asc, eq, inArray, isNull, or, sql } from 'drizzle-orm'
-import { VoyageAIClient } from 'voyageai'
 import { db } from '@/lib/db'
 import { documentFiles, queries, type QuerySource } from '@/lib/schema'
 import { getMatterAccess, isUuid } from '@/lib/matter-access'
@@ -11,11 +9,16 @@ import { pageForChar } from '@/lib/pagination'
 import { isDemoOrg } from '@/lib/demo'
 import { claimDemoQuestion } from '@/lib/demo-quota'
 import { claimFirmQuestion } from '@/lib/firm-quota'
+
+// ----- AI -----------
+import { chatModel } from '@/lib/ai/models' // ← changed: replaces '@ai-sdk/anthropic'
+import { embedQuery, toVectorLiteral } from '@/lib/ai/embeddings' // ← changed: replaces 'voyageai'
+
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
 const PER_DOC_K = 4 // best chunks taken from EACH ticked document
-const MAX_CHUNKS = 12 // total chunks sent to Claude
+const MAX_CHUNKS = 12 // total chunks sent to the model
 const MAX_FILES = 20 // most documents that can be ticked at once
 const MIN_SIMILARITY = 0.3 // ignore chunks less relevant than this
 
@@ -24,13 +27,11 @@ const MIN_SIMILARITY = 0.3 // ignore chunks less relevant than this
        Keep an eye on it, though. Scores depend on the model and how a question is phrased. If a good question ever returns "couldn't find it", lower the floor to 0.25. It's one constant, so it's easy to tune.
  */
 
-const voyage = new VoyageAIClient({ apiKey: process.env.VOYAGE_API_KEY }) // ← existing
-
 // ----- HELPERS ---------
 const MAX_HISTORY_TURNS = 4 // earlier Q&A pairs sent back as context
 
 // Earlier answers carry their own [1], [2] markers, which mean nothing in a new
-// turn. Strip them so Claude can't mistake an old number for a new source.
+// turn. Strip them so the model can't mistake an old number for a new source.
 function stripCitations(text: string) {
   return text.replace(/\s?\[\d+\]/g, '')
 }
@@ -45,7 +46,7 @@ async function standaloneQuestion(
   try {
     // prettier-ignore
     const { text } = await generateText({
-      model: anthropic('claude-haiku-4-5'),
+      model: chatModel('fast'), // ← changed: a small, quick model is enough for rewriting
       system:
         'Rewrite the follow-up as a standalone question that can be understood without the conversation. ' +
         'Keep names, parties, documents and legal terms. Reply with the question only.',
@@ -57,6 +58,7 @@ async function standaloneQuestion(
     return question // rewriting is an improvement, not a requirement
   }
 }
+
 type Row = {
   content: string
   source: string
@@ -83,7 +85,7 @@ export async function POST(
 
     const { userId, orgId, matter } = access
 
-    // ** safe gurad ---  A closed or archived case is read-only: no new research.
+    // Safeguard: a closed or archived case is read-only, so no new research.
     if (matter.status !== 'open') {
       return Response.json(
         { error: 'This case is closed. Reopen it to ask new questions.' },
@@ -182,28 +184,16 @@ export async function POST(
 
     // Question limits, checked before anything costs money:
     // demo visitors by IP and day, real firms by month.
+    // It goes this late so a question with an invalid document selection doesn't use up the allowance.
     const refusal = isDemoOrg(orgId)
       ? await claimDemoQuestion(req, 'chat')
       : await claimFirmQuestion(orgId, userId, 'case-query')
     if (refusal) return Response.json({ error: refusal }, { status: 429 })
-    // It goes this late because a question with an invalid document selection shouldn't cost the visitor one of their 10. Add the same two imports.
 
     // ---- 1. Embed the question (rewritten to stand alone if it's a follow-up) ----
+    // Same embedding model as the documents, so the vectors are comparable.
     const searchQuestion = await standaloneQuestion(history, question)
-    const res = await voyage.embed({
-      input: searchQuestion,
-      model: 'voyage-4',
-      inputType: 'query',
-    })
-
-    const queryEmbedding = res.data?.[0]?.embedding
-    if (!queryEmbedding) {
-      return Response.json(
-        { error: 'Failed to embed the question.' },
-        { status: 500 },
-      )
-    }
-    const vectorLiteral = `[${queryEmbedding.join(',')}]`
+    const vectorLiteral = toVectorLiteral(await embedQuery(searchQuestion)) // ← changed
 
     // ---- 2. Scoped similarity search, with a per-document quota ----
     // row_number() ranks chunks WITHIN each file, so a long law book can't
@@ -264,7 +254,7 @@ export async function POST(
         `relevant to this question. Tell the user you could not find the answer in the ticked ` +
         `documents, and suggest they tick other documents or rephrase the question. Do not guess.`
 
-    // Type the sources so they match what's stored. Change const sources = rows.map(...) to.
+    // Typed to match what's stored in queries.sources.
     const sources: QuerySource[] = rows.map((r, i) => ({
       n: i + 1,
       fileId: r.file_id,
@@ -293,11 +283,7 @@ export async function POST(
       })
       .returning({ id: queries.id })
 
-    // ----  Audit: who asked what, on which case ----
-
-    // ---- 5. Stream the answer, sources in a header (same pattern as /api/chat) ----
-    // ---- 4. Save the question first, so it exists even if streaming fails ----
-
+    // ---- Audit: who asked what, on which case ----
     await logAction({
       orgId,
       userId,
@@ -310,7 +296,7 @@ export async function POST(
 
     /**
      * How the saving works:
-     * the row is inserted before streaming with status = 'streaming' and an empty answer. When Claude finishes, onFinish receives the whole text and fills it in. So a crash mid-answer leaves an honest record ("streaming" or "error"), not a missing one. The query ID also goes back in a header, so the page can link to it straight away.
+     * the row is inserted before streaming with status = 'streaming' and an empty answer. When the model finishes, onFinish receives the whole text and fills it in. So a crash mid-answer leaves an honest record ("streaming" or "error"), not a missing one. The query ID also goes back in a header, so the page can link to it straight away.
      */
 
     // ---- 5. Stream the answer; store it once it's complete ----
@@ -319,10 +305,9 @@ export async function POST(
      * messages: an array of turns, each with a role ('user' or 'assistant') and content. It's for when there's a conversation to include.
      */
     const stream = streamText({
-      model: anthropic('claude-sonnet-5'),
+      model: chatModel('answer'), // ← changed
       system,
       messages: [
-        // <-- was prompt
         ...history.flatMap((h) => [
           { role: 'user' as const, content: h.question },
           { role: 'assistant' as const, content: stripCitations(h.answer) },
@@ -330,8 +315,7 @@ export async function POST(
         { role: 'user' as const, content: question },
       ],
       onFinish: async ({ text }) => {
-        // NEW: when the last word has been generated, save the whole answer.
-        // Runs on the server after the last token, with the full text.
+        // When the last word has been generated, save the whole answer.
         try {
           await db
             .update(queries)
@@ -342,7 +326,7 @@ export async function POST(
         }
       },
       onError: async () => {
-        // NEW: if generation fails part-way, record that instead.
+        // If generation fails part-way, record that instead.
         try {
           await db
             .update(queries)
@@ -359,7 +343,7 @@ export async function POST(
         'Content-Type': 'text/plain; charset=utf-8',
         'X-Sources': encodeURIComponent(JSON.stringify(sources)),
         'X-Query-Id': saved.id,
-        'X-Thread-Id': threadId, // <-- Return the thread ID
+        'X-Thread-Id': threadId,
       },
     })
   } catch (err) {

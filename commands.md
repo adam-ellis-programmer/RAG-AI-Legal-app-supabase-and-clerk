@@ -13,4 +13,6 @@ grep -nE "anthropic|voyage|openai|\"ai\"" package.json
 
 ** ---------------------------------------- **
 
+grep -rnE "VoyageAIClient|anthropic\(" app lib scripts components
 
+** ---------------------------------------- **

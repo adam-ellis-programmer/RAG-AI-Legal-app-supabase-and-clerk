@@ -3,9 +3,10 @@
 // The answers are written here so the demo is identical on every run, but every
 // citation is resolved against the real stored chunks: real chunk, real page,
 // real highlight, and a real similarity score for that question.
+
 import { randomUUID } from 'node:crypto'
 import { and, eq, sql } from 'drizzle-orm'
-import { VoyageAIClient } from 'voyageai'
+
 import { db } from '@/lib/db'
 import { documents, queries, type QuerySource } from '@/lib/schema'
 import { pageForChar } from '@/lib/pagination'
@@ -13,6 +14,9 @@ import { ORG_ID, daysAgo } from './config'
 import type { People, PersonKey } from './people'
 import type { Library } from './library'
 import type { Cases } from './cases'
+
+// ----- AI --------------
+import { embedQuery, toVectorLiteral } from '@/lib/ai/embeddings'
 
 type CaseKey = keyof Cases
 // A cited document: 'law:<library key>' or 'case:<document key on this case>'.
@@ -24,7 +28,7 @@ type Turn = {
   daysAgo: number
   hour: number
   question: string
-  searchQuery?: string // follow-ups: the standalone version used for scoring, as Haiku would rewrite it
+  searchQuery?: string // follow-ups: the standalone version used for scoring, as the query route would rewrite it  
   answer: string // [n] markers: one number per entry in `cites`, renumbered when seeded
   cites: Cite[]
 }
@@ -135,14 +139,9 @@ Mr Reed asked for the code in writing on 12 March and 15 June 2026 and received 
 
 // --------------------------------------------------------------------------
 
-let voyageClient: VoyageAIClient | null = null
-// prettier-ignore
+/** The question as a pgvector literal, ready to score stored chunks against it. */
 async function embedQuestion(text: string) {
-  voyageClient ??= new VoyageAIClient({ apiKey: process.env.VOYAGE_API_KEY })
-  const res = await voyageClient.embed({ input: text, model: 'voyage-4', inputType: 'query' })
-  const vector = res.data?.[0]?.embedding
-  if (!vector) throw new Error(`Could not embed question: ${text}`)
-  return `[${vector.join(',')}]`
+  return toVectorLiteral(await embedQuery(text))
 }
 
 /** Turn 'law:boundaries' or 'case:surveyorReport' into a stored document. */
@@ -216,8 +215,8 @@ export async function seedConversations(people: People, library: Library, cases:
     for (const [i, turn] of convo.turns.entries()) {
       const id = i === 0 ? threadId : randomUUID()
 
-      // Score against the standalone question, as the real search would:
-      // follow-ups are rewritten by Haiku before searching.
+      // Score against the standalone question, as the real search would: 
+      // follow-ups are rewritten into a standalone question before searching.
       const vector = await embedQuestion(turn.searchQuery ?? turn.question)
 
       // One source per distinct passage. If two cites land in the same chunk,
@@ -265,3 +264,5 @@ export async function seedConversations(people: People, library: Library, cases:
   }
   return saved
 }
+
+

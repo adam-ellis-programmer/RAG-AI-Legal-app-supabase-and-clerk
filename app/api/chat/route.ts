@@ -1,15 +1,19 @@
 // app/api/chat/route.ts
 import { auth } from '@clerk/nextjs/server'
-import { anthropic } from '@ai-sdk/anthropic'
+
 import { streamText } from 'ai'
 import { sql } from 'drizzle-orm'
-import { VoyageAIClient } from 'voyageai'
+
 import { db } from '@/lib/db'
 import { pageForChar } from '@/lib/pagination'
 
 import { isDemoOrg } from '@/lib/demo'
 import { claimDemoQuestion } from '@/lib/demo-quota'
 import { claimFirmQuestion } from '@/lib/firm-quota'
+
+// ----- AI -----------
+import { chatModel } from '@/lib/ai/models'
+import { embedQuery, toVectorLiteral } from '@/lib/ai/embeddings'
 
 /**
  * quick notes
@@ -43,7 +47,6 @@ export const runtime = 'nodejs'
 const TOP_K = 5 // how many chunks to retrieve as context
 
 const MIN_SIMILARITY = 0.3 // ignore chunks less relevant than this
-const voyage = new VoyageAIClient({ apiKey: process.env.VOYAGE_API_KEY })
 
 // data pipe line and HOW IS STREAM WORKING (NO ASYNC)
 // prettier-ignore
@@ -73,32 +76,8 @@ export async function POST(req: Request) {
     if (refusal) return Response.json({ error: refusal }, { status: 429 })
 
 
-    // 1. Embed the QUESTION. Note inputType "query" — documents were embedded
-    //    with "document". Same model (voyage-4) so the vectors are comparable.
-    const res = await voyage.embed({
-      input: question,
-      model: 'voyage-4',
-      inputType: 'query',
-    })
-
-
-
-
-    const queryEmbedding = res.data?.[0]?.embedding
-
-
-    if (!queryEmbedding) {
-      return Response.json(
-        { error: 'Failed to embed the question.' },
-        { status: 500 },
-      )
-    }
-
-    // 2. Similarity search: order rows by cosine distance (<=>) to the question,
-    //    closest first, and take the top K. (1 - distance) = a 0..1 similarity score.
-    const vectorLiteral = `[${queryEmbedding.join(',')}]`
-
-
+    // 1. Embed the question (same model as the documents, so the vectors are comparable).
+    const vectorLiteral = toVectorLiteral(await embedQuery(question))
 
     /**
      * ~~~~~~~~~~~~~~~~~~~~
@@ -201,7 +180,7 @@ export async function POST(req: Request) {
     // 4. Stream Claude's grounded answer back as plain text.
     // TEST A VANILLA STREAM APP SO IT STREAMS FROM A FILE TO THE DOM
     const stream = streamText({
-      model: anthropic('claude-sonnet-5'),
+      model: chatModel('answer'),
       system,
       prompt: question,
     })
